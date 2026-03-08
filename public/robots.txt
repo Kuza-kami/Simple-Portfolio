@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://kuza-kami.github.io/amy-simpson-V1/sitemap.xml
