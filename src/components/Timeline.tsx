@@ -1,8 +1,10 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
 import { X, Award, FileText, Fingerprint, MapPin, ShieldCheck } from 'lucide-react';
 import { timelineEvents } from '../data/content';
 import { ParallaxFloat, BlurReveal } from './TextAnimations';
+import BlurText from './BlurText';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -74,15 +76,15 @@ const Timeline: React.FC = () => {
   }, [selectedEvent]);
 
   return (
-    <section ref={containerRef} id="timeline" className="py-16 md:py-24 lg:py-32 bg-white dark:bg-[#0f0f0f] relative overflow-hidden transition-colors duration-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-6 relative">
+    <section ref={containerRef} id="timeline" className="py-16 md:py-32 bg-transparent relative overflow-hidden transition-colors duration-500">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-6 relative">
           
           {/* Header */}
           <ParallaxFloat offset={15}>
             <BlurReveal>
               <div className="text-center mb-16 md:mb-24 relative z-10">
                    <span className="block text-[10px] sm:text-xs font-mono uppercase tracking-widest mb-2 md:mb-2 text-design-blue">The Process</span>
-                   <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-display uppercase font-bold text-design-black dark:text-white">
+                   <h2 className="text-3xl sm:text-4xl md:text-6xl font-display uppercase font-bold text-design-black dark:text-white">
                       Awards & <br /><span className="italic font-serif font-light text-gray-400">Experience</span>
                    </h2>
               </div>
@@ -129,17 +131,18 @@ const Timeline: React.FC = () => {
                 </motion.div>
              </div>
         </div>
-        <div className="space-y-12 md:space-y-24 lg:space-y-32 relative z-10 pb-16 md:pb-32">
+        <div className="space-y-12 md:space-y-32 relative z-10 pb-16 md:pb-32">
            {timelineEvents.map((event, index) => {
                const isEven = index % 2 === 0;
-               return (
+                return (
                    <motion.div 
                         key={index}
+                        data-gsap-timeline
                         initial={{ opacity: 0, y: 50, scale: 0.9 }}
                         whileInView={{ opacity: 1, y: 0, scale: 1 }}
                         viewport={{ once: true, amount: 0.3 }}
                         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                        className={`relative flex flex-col md:flex-row ${isEven ? 'md:flex-row-reverse' : ''} items-center group`}
+                        className={`relative flex flex-col md:flex-row ${isEven ? 'md:flex-row-reverse' : ''} items-center group cursor-pointer`}
                         onClick={() => setSelectedEvent(event)}
                    >
                          {/* Dot on line */}
@@ -152,10 +155,18 @@ const Timeline: React.FC = () => {
                             <div className={`inline-block border border-design-black rounded-full px-3 md:px-4 py-1 md:py-1.5 text-[9px] md:text-[10px] font-bold uppercase tracking-widest bg-white mb-2 md:mb-4 shadow-sm group-hover:bg-design-blue group-hover:text-black transition-colors ${!isEven && 'md:ml-auto'}`}>
                                 {event.year}
                             </div>
-                            <h3 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-display uppercase font-bold mb-2 md:mb-3 text-design-black group-hover:text-design-blue transition-colors cursor-pointer">{event.title}</h3>
-                            <p className={`text-gray-600 font-medium text-xs sm:text-sm leading-relaxed max-w-sm mx-auto md:mx-0 ${!isEven ? 'md:ml-auto' : 'md:mr-auto'}`}>
-                                {event.desc}
-                            </p>
+                            <BlurText 
+                                text={event.title}
+                                animateBy="words"
+                                delay={50}
+                                className="text-xl sm:text-2xl md:text-4xl font-display uppercase font-bold mb-2 md:mb-3 text-design-black group-hover:text-design-blue transition-colors cursor-pointer"
+                            />
+                            <BlurText 
+                                text={event.desc}
+                                animateBy="words"
+                                delay={30}
+                                className={`text-gray-600 font-medium text-xs sm:text-sm leading-relaxed max-w-sm mx-auto md:mx-0 ${!isEven ? 'md:ml-auto' : 'md:mr-auto'}`}
+                            />
                         </div>
 
                         {/* Image Side */}
@@ -195,133 +206,142 @@ const Timeline: React.FC = () => {
       </div>
 
       {/* MODAL */}
-      <AnimatePresence>
-        {selectedEvent && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 md:p-8">
-             <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-black/90 backdrop-blur-md"
-                onClick={() => setSelectedEvent(null)}
-             />
-             
-             <motion.div 
-                initial={{ opacity: 0, scale: 0.9, y: 50 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 50 }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                className="relative w-full max-w-6xl bg-white rounded-[2rem] overflow-hidden flex flex-col md:flex-row shadow-2xl z-[1010] max-h-[90vh]"
-             >
-                {/* Close Button */}
-                <button 
-                    onClick={() => setSelectedEvent(null)}
-                    className="absolute top-6 right-6 z-50 w-10 h-10 bg-black/20 text-white backdrop-blur-md rounded-full flex items-center justify-center hover:bg-design-blue hover:text-black transition-colors"
-                >
-                    <X size={20} />
-                </button>
+      {createPortal(
+        <AnimatePresence>
+          {selectedEvent && (
+            <div className="fixed inset-0 z-[1000] overflow-y-auto flex justify-center items-start md:items-center p-0 md:p-8">
+               <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/90 backdrop-blur-md"
+                  onClick={() => setSelectedEvent(null)}
+               />
+               
+               <motion.div 
+                  initial={{ opacity: 0, scale: 0.9, y: 50 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 50 }}
+                  transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                  className="relative w-full max-w-6xl bg-white rounded-[22px] md:overflow-hidden flex flex-col md:flex-row shadow-2xl z-[1010] h-auto min-h-screen md:min-h-0 md:max-h-[90vh] my-0 md:my-8"
+               >
+                  {/* Close Button */}
+                  <button 
+                      onClick={() => setSelectedEvent(null)}
+                      className="absolute top-6 right-6 z-50 w-10 h-10 bg-black/20 text-white backdrop-blur-md rounded-full flex items-center justify-center hover:bg-design-blue hover:text-black transition-colors"
+                  >
+                      <X size={20} />
+                  </button>
 
-                {/* Left Side: Image & Certificate Visual */}
-                <div className="w-full md:w-3/5 relative h-[30vh] md:h-auto bg-neutral-900 overflow-hidden group">
-                    <img 
-                        src={selectedEvent.image} 
-                        alt={`Timeline event details: ${selectedEvent.title}`} 
-                        className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-1000"
-                        referrerPolicy="no-referrer"
-                        loading="lazy"
-                        decoding="async"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
-                    
-                    {/* Certificate Badge Overlay */}
-                    <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12 max-w-xs">
-                        <div className="flex items-center gap-3 mb-2 md:mb-4">
-                            <div className="w-10 h-10 md:w-12 md:h-12 bg-design-green rounded-full flex items-center justify-center text-black shadow-[0_0_20px_rgba(180,197,168,0.4)]">
-                                <Award size={20} className="md:w-6 md:h-6" />
-                            </div>
-                            <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full">
-                                <span className="text-[8px] md:text-[10px] font-mono uppercase tracking-widest text-white">Verified Achievement</span>
-                            </div>
-                        </div>
-                        <h3 className="text-2xl md:text-3xl font-display font-bold uppercase text-white mb-2 leading-none">
-                            Certificate of <br/>Excellence
-                        </h3>
-                        <p className="text-white/60 text-[10px] md:text-xs leading-relaxed border-l-2 border-design-green pl-3 hidden sm:block">
-                            This document certifies the successful completion and recognition of the aforementioned milestone in the Simpson Archives.
-                        </p>
-                    </div>
-                </div>
+                  {/* Left Side: Image & Certificate Visual */}
+                  <div className="w-full md:w-1/2 relative h-auto min-h-[30vh] md:h-auto bg-neutral-900 overflow-hidden group">
+                      <img 
+                          src={selectedEvent.image} 
+                          alt={`Timeline event details: ${selectedEvent.title}`} 
+                          className="w-full h-full object-cover opacity-80 group-hover:scale-105 transition-transform duration-1000"
+                          referrerPolicy="no-referrer"
+                          loading="lazy"
+                          decoding="async"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
+                      
+                      {/* Certificate Badge Overlay */}
+                      <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12 max-w-xs">
+                          <div className="flex items-center gap-3 mb-2 md:mb-4">
+                              <div className="w-10 h-10 md:w-12 md:h-12 bg-design-green rounded-full flex items-center justify-center text-black shadow-[0_0_20px_rgba(180,197,168,0.4)]">
+                                  <Award size={20} className="md:w-6 md:h-6" />
+                              </div>
+                              <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full">
+                                  <span className="text-[8px] md:text-[10px] font-mono uppercase tracking-widest text-white">Verified Achievement</span>
+                              </div>
+                          </div>
+                          <h3 className="text-2xl md:text-3xl font-display font-bold uppercase text-white mb-2 leading-none">
+                              Certificate of <br/>Excellence
+                          </h3>
+                          <p className="text-white/60 text-[10px] md:text-xs leading-relaxed border-l-2 border-design-green pl-3 hidden sm:block">
+                              This document certifies the successful completion and recognition of the aforementioned milestone in the Simpson Archives.
+                          </p>
+                      </div>
+                  </div>
 
-                 {/* Right Side: Details & Archive Data */}
-                <div className="w-full md:w-2/5 bg-white text-design-black flex flex-col flex-1 overflow-y-auto">
-                    <div className="p-6 md:p-12">
-                        <div className="flex items-center gap-3 mb-4 md:mb-6">
-                            <span className="px-4 py-1.5 bg-design-black text-white rounded-full text-xs font-bold uppercase tracking-widest">
-                                Year {selectedEvent.year}
-                            </span>
-                            <div className="h-px flex-1 bg-gray-200"></div>
-                        </div>
+                   {/* Right Side: Details & Archive Data */}
+                  <div className="w-full md:w-1/2 bg-white text-design-black flex flex-col flex-1 md:overflow-y-auto">
+                      <div className="p-6 md:p-12">
+                          <div className="flex items-center gap-3 mb-4 md:mb-6">
+                              <span className="px-4 py-1.5 bg-design-black text-white rounded-full text-xs font-bold uppercase tracking-widest">
+                                  Year {selectedEvent.year}
+                              </span>
+                              <div className="h-1 flex-1 bg-design-blue/30"></div>
+                          </div>
 
-                        <h2 className="text-3xl md:text-5xl font-display font-bold uppercase mb-4 md:mb-6 leading-[0.9] tracking-tight text-design-black">
-                            {selectedEvent.title}
-                        </h2>
+                          <BlurText 
+                              text={selectedEvent.title}
+                              animateBy="words"
+                              delay={80}
+                              className="text-3xl md:text-5xl font-display font-bold uppercase mb-4 md:mb-6 leading-[0.9] tracking-tight text-design-black"
+                          />
 
-                        <p className="text-base md:text-lg text-gray-600 font-light leading-relaxed mb-8 md:mb-10">
-                            {selectedEvent.extendedDesc || selectedEvent.desc}
-                        </p>
+                          <BlurText 
+                              text={selectedEvent.extendedDesc || selectedEvent.desc}
+                              animateBy="words"
+                              delay={40}
+                              className="text-base md:text-lg text-gray-600 font-light leading-relaxed mb-8 md:mb-10"
+                          />
 
-                        {/* Archive Data Block */}
-                        <div className="bg-neutral-50 rounded-2xl p-4 md:p-6 border border-gray-100">
-                            <div className="flex items-center gap-2 mb-4 md:mb-6 border-b border-gray-200 pb-4">
-                                <FileText size={18} className="text-design-green" />
-                                <span className="text-xs font-bold uppercase tracking-widest">Archive Metadata</span>
-                            </div>
+                          {/* Archive Data Block */}
+                          <div className="bg-neutral-50 rounded-2xl p-4 md:p-6 border border-gray-100">
+                              <div className="flex items-center gap-2 mb-4 md:mb-6 border-b-2 border-gray-200 pb-4">
+                                  <FileText size={18} className="text-design-green" />
+                                  <span className="text-xs font-bold uppercase tracking-widest">Archive Metadata</span>
+                              </div>
 
-                            <div className="grid grid-cols-1 gap-3 md:gap-4">
-                                <div className="flex items-start gap-4">
-                                    <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 border border-gray-200 shrink-0">
-                                        <Fingerprint size={16} />
-                                    </div>
-                                    <div>
-                                        <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Record ID</span>
-                                        <span className="font-mono text-sm">ARCH-{selectedEvent.year}-{archiveId}</span>
-                                    </div>
-                                </div>
+                              <div className="grid grid-cols-1 gap-3 md:gap-4">
+                                  <div className="flex items-start gap-4">
+                                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 border border-gray-200 shrink-0">
+                                          <Fingerprint size={16} />
+                                      </div>
+                                      <div>
+                                          <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Record ID</span>
+                                          <span className="font-mono text-sm">ARCH-{selectedEvent.year}-{archiveId}</span>
+                                      </div>
+                                  </div>
 
-                                <div className="flex items-start gap-4">
-                                    <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 border border-gray-200 shrink-0">
-                                        <MapPin size={16} />
-                                    </div>
-                                    <div>
-                                        <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Origin</span>
-                                        <span className="font-mono text-sm">New York, NY / Global</span>
-                                    </div>
-                                </div>
+                                  <div className="flex items-start gap-4">
+                                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 border border-gray-200 shrink-0">
+                                          <MapPin size={16} />
+                                      </div>
+                                      <div>
+                                          <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Origin</span>
+                                          <span className="font-mono text-sm">New York, NY / Global</span>
+                                      </div>
+                                  </div>
 
-                                <div className="flex items-start gap-4">
-                                    <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 border border-gray-200 shrink-0">
-                                        <ShieldCheck size={16} />
-                                    </div>
-                                    <div>
-                                        <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Verification</span>
-                                        <span className="font-mono text-sm text-design-green">Authenticated</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    {/* Footer in Modal */}
-                    <div className="mt-auto p-4 md:p-6 bg-gray-50 border-t border-gray-100 text-center">
-                        <p className="text-[10px] font-mono uppercase text-gray-400">
-                            Simpson Studio Archives &copy; {new Date().getFullYear()}
-                        </p>
-                    </div>
-                </div>
-             </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                                  <div className="flex items-start gap-4">
+                                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 border border-gray-200 shrink-0">
+                                          <ShieldCheck size={16} />
+                                      </div>
+                                      <div>
+                                          <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Verification</span>
+                                          <span className="font-mono text-sm text-design-green">Authenticated</span>
+                                      </div>
+                                  </div>
+                              </div>
+                          </div>
+                      </div>
+                      
+                      {/* Footer in Modal */}
+                      <div className="mt-auto p-4 md:p-6 bg-gray-50 border-t border-gray-100 text-center">
+                          <p className="text-[10px] font-mono uppercase text-gray-400">
+                              Simpson Studio Archives &copy; {new Date().getFullYear()}
+                          </p>
+                      </div>
+                  </div>
+               </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </section>
   );
 };

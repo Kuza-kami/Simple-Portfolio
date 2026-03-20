@@ -4,6 +4,21 @@ export const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event
   e.currentTarget.src = 'https://picsum.photos/800/600?blur=2';
 };
 
+export const getLowResUrl = (url: string): string => {
+  if (url.includes('picsum.photos')) {
+    const parts = url.split('/');
+    const last = parts[parts.length - 1];
+    const secondLast = parts[parts.length - 2];
+    
+    if (!isNaN(Number(last)) && !isNaN(Number(secondLast))) {
+        parts[parts.length - 1] = '600';
+        parts[parts.length - 2] = '400';
+        return parts.join('/');
+    }
+  }
+  return url;
+};
+
 export const getHighResUrl = (url: string): string => {
   // Check if it's a picsum url
   if (url.includes('picsum.photos')) {

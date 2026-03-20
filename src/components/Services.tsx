@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Mail, Instagram, Download, FileText, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BlurReveal, RotatingWords, SplitText, ParallaxFloat } from './TextAnimations';
+import { BlurReveal, RotatingWords, ParallaxFloat } from './TextAnimations';
+import ScrollFloat from './ScrollFloat';
+import ScrollReveal from './ScrollReveal';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -65,7 +67,7 @@ const Services: React.FC = () => {
   ];
 
   return (
-    <section ref={sectionRef} id="about" className="py-16 md:py-24 bg-white dark:bg-[#0f0f0f] relative transition-colors duration-500 border-t border-neutral-200 dark:border-neutral-800">
+    <section ref={sectionRef} id="about" className="py-16 md:py-24 bg-transparent relative transition-colors duration-500">
       <AnimatePresence>
         {toastMessage && (
           <motion.div
@@ -90,23 +92,20 @@ const Services: React.FC = () => {
                 <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-design-blue mb-3 md:mb-4 block">About Me</span>
             </BlurReveal>
             
-            <h2 className="text-5xl sm:text-6xl md:text-7xl lg:text-9xl font-display font-bold text-design-black dark:text-white uppercase leading-none flex flex-col items-start">
-               <SplitText text="About" className="block" />
-               <div className="relative inline-block">
-                 <SplitText text="ME" className="font-bold relative z-10" delay={0.2} />
-                 <motion.div 
-                   initial={{ scaleX: 0 }}
-                   whileInView={{ scaleX: 1 }}
-                   viewport={{ once: true }}
-                   transition={{ duration: 1, delay: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                   className="absolute bottom-2 left-0 w-full h-3 sm:h-4 md:h-4 bg-design-blue -z-10 origin-left opacity-50"
-                 ></motion.div>
-               </div>
-            </h2>
+            <ScrollFloat
+              animationDuration={1}
+              ease='back.inOut(2)'
+              scrollStart='center bottom+=50%'
+              scrollEnd='bottom bottom-=40%'
+              stagger={0.06}
+              containerClassName="text-5xl sm:text-6xl md:text-9xl font-display font-bold text-design-black dark:text-white uppercase leading-none flex flex-col items-start"
+            >
+              About ME
+            </ScrollFloat>
         </div>
 
         {/* Content Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-16 items-start">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-start">
            
            {/* Left: Bio */}
            <ParallaxFloat offset={20}>
@@ -117,19 +116,23 @@ const Services: React.FC = () => {
                viewport={{ once: true }}
                transition={{ duration: 1 }}
              >
-              <BlurReveal delay={0.2}>
-                <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed text-design-black dark:text-white font-light">
-                    I believe in the tactility of design. From the texture of raw fabric to the stroke of a charcoal pencil, my work is grounded in material reality.
-                </p>
-                <p className="mt-6 md:mt-8 text-base sm:text-lg text-gray-600 dark:text-gray-400 font-light leading-relaxed">
-                    My background in sewing and textile art allows me to construct garments that tell stories. I approach every project with a focus on structure, form, and the human experience.
-                </p>
-              </BlurReveal>
+               <ScrollReveal
+                baseOpacity={0.1}
+                enableBlur
+                baseRotation={3}
+                blurStrength={4}
+                containerClassName="text-design-black dark:text-white"
+                textClassName="text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed font-light"
+              >
+                When does a man die? When he is hit by a bullet? No! When he suffers a disease?
+                No! When he ate a soup made out of a poisonous mushroom?
+                No! A man dies when he is forgotten!
+              </ScrollReveal>
            </motion.div>
            </ParallaxFloat>
 
            {/* Right: Role, Downloads, Contact */}
-           <div className="flex flex-col space-y-8 md:space-y-12 lg:pl-8 md:lg:pl-12 border-l border-neutral-200 dark:border-neutral-800">
+           <div className="flex flex-col space-y-8 md:space-y-12 md:pl-8 lg:pl-12 border-l border-neutral-200 dark:border-neutral-800">
              <motion.div 
                data-gsap-service
                initial={{ opacity: 0, y: 20 }}

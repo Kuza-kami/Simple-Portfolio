@@ -12,11 +12,11 @@
 
   --color-design-black: #1E1E1E;
   --color-design-white: #ffffff;
-  --color-design-blue: #78909C;
-  --color-design-green: #84A98C;
-  --color-design-cream: #F5F5F0;
+  --color-design-blue: #A2D2FF;
+  --color-design-green: #C1E1C1;
+  --color-design-cream: #FDFCF0;
   
-  --shadow-flat: 4px 4px 0px 0px rgba(30,30,30,0.2);
+  --shadow-flat: 4px 4px 0px 0px rgba(162,210,255,0.4);
   --shadow-flat-lg: 8px 8px 0px 0px rgba(30,30,30,0.2);
   --shadow-flat-white: 4px 4px 0px 0px rgba(255,255,255,1);
   --shadow-flat-white-lg: 8px 8px 0px 0px rgba(255,255,255,1);
@@ -48,8 +48,9 @@
   }
   
   .dark {
-    --color-design-blue: #B0BEC5;
-    --color-design-green: #A5D6A7;
+    --color-design-blue: #7FB5FF;
+    --color-design-green: #98C198;
+    --color-design-cream: #1A1A1A;
   }
   
   body {
@@ -61,10 +62,10 @@
   
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #CFD8DC; }
+  ::-webkit-scrollbar-thumb { background: #A2D2FF; }
   
   ::selection {
-    background: #CFD8DC;
+    background: #A2D2FF;
     color: #000;
   }
 

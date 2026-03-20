@@ -6,7 +6,6 @@ import {defineConfig, loadEnv} from 'vite';
 export default defineConfig(({mode}) => {
   const env = loadEnv(mode, process.cwd(), '');
   return {
-    base: '/amy-simpson-V2/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
