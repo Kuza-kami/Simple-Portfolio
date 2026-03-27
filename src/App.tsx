@@ -6,8 +6,12 @@ import Timeline from './components/Timeline';
 import Portfolio from './components/Portfolio';
 import Footer from './components/Footer';
 import ErrorBoundary from './components/ErrorBoundary';
-import ScrollStack from './components/ScrollStack';
+import ClickSpark from './components/ClickSpark';
 import { motion, useSpring, useMotionValue } from 'framer-motion';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const CustomCursor = () => {
   const cursorX = useMotionValue(-100);
@@ -49,7 +53,7 @@ const CustomCursor = () => {
         animate={{ 
           scale: isHovering ? 2 : 1,
           borderWidth: isHovering ? 1 : 2,
-          backgroundColor: isHovering ? 'rgba(162, 210, 255, 0.2)' : 'transparent'
+          backgroundColor: isHovering ? 'rgba(52, 78, 65, 0.2)' : 'transparent'
         }}
         style={{ 
           x: ringX, y: ringY, width: 32, height: 32, 
@@ -60,54 +64,49 @@ const CustomCursor = () => {
   );
 };
 
-const RevealSection: React.FC<{ children: React.ReactNode; id?: string; className?: string }> = ({ children, id, className = "" }) => {
-  return (
-    <motion.div
-      id={id}
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, amount: 0.1 }}
-      transition={{ duration: 0.8, ease: "easeOut" }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-};
-
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-design-cream dark:bg-[#0a0a0a] text-design-black dark:text-white font-sans selection:bg-design-blue selection:text-design-black transition-colors duration-300 relative overflow-x-hidden">
-        <div className="bg-noise pointer-events-none opacity-[0.03] dark:opacity-[0.05]"></div>
-              
-        <CustomCursor />
-        <Navbar />
+      <ClickSpark
+        sparkColor='#89a178'
+        sparkSize={60}
+        sparkRadius={15}
+        sparkCount={12}
+        duration={600}
+      >
+        <div className="fixed inset-0 pointer-events-none z-[100]">
+          <CustomCursor />
+        </div>
         
-        <main className="relative">
-          <ScrollStack>
+        <Navbar />
+
+        <div className="min-h-screen bg-design-cream dark:bg-[#1a1c1a] text-design-black dark:text-white font-sans selection:bg-design-blue selection:text-design-black transition-colors duration-300 relative">
+          <div className="grain-overlay"></div>
+          <div className="vignette"></div>
+                
+          <main className="relative">
             {/* --- Hero Section --- */}
             <Hero />
             
             {/* --- About / Services Section --- */}
-            <RevealSection id="about" className="scroll-mt-20">
+            <div id="about" className="scroll-mt-20">
               <Services />
-            </RevealSection>
+            </div>
 
             {/* --- Portfolio / Archive Section --- */}
-            <RevealSection id="portfolio" className="scroll-mt-20">
+            <div id="portfolio" className="scroll-mt-20">
               <Portfolio />
-            </RevealSection>
+            </div>
 
             {/* --- Timeline / Chronology Section --- */}
-            <RevealSection id="timeline" className="scroll-mt-20">
+            <div id="timeline" className="scroll-mt-20">
               <Timeline />
-            </RevealSection>
-          </ScrollStack>
-        </main>
-        
-        <Footer />
-      </div>
+            </div>
+          </main>
+          
+          <Footer />
+        </div>
+      </ClickSpark>
     </ErrorBoundary>
   );
 };

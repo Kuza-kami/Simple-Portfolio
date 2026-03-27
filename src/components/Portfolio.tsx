@@ -1,20 +1,23 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Project } from '../types';
-import { ArrowUpRight, X, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpRight, X, Share2, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import ProjectFilter from './ProjectFilter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { portfolioProjects } from '../data/content';
-import { handleImageError, getHighResUrl, getLowResUrl } from '../utils/imageUtils';
+import { handleImageError, getHighResUrl } from '../utils/imageUtils';
 import { moreProjects, getProjectDetails } from '../utils/projectUtils';
-import { ParallaxFloat, DecryptedText } from './TextAnimations';
+import { ParallaxFloat, DecryptedText, ThreeDTextReveal, SplitText } from './TextAnimations';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 
 
 const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ project, onClick }) => {
   return (
     <motion.div 
-      layout
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -24,24 +27,23 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
       }}
       role="button"
       tabIndex={0}
-      className="break-inside-avoid inline-block w-full mb-6 group cursor-zoom-in relative focus:outline-none transition-all duration-300 hover:shadow-2xl rounded-[2rem]"
-      initial={{ opacity: 0, scale: 0.9 }}
+      className="break-inside-avoid-column block w-full mb-6 group cursor-default relative focus:outline-none transition-all duration-300"
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
-      whileHover={{ scale: 1.02, y: -8 }}
+      whileHover={{ scale: 1.05 }}
       transition={{ 
         duration: 0.4,
         ease: "easeOut"
       }}
     >
-      <div className="relative rounded-[2rem] overflow-hidden bg-white border border-design-black/5 group-focus:ring-2 group-focus:ring-design-green">
+      <div className="relative rounded-[2rem] overflow-hidden bg-white border border-design-black/5 group-focus:ring-2 group-focus:ring-design-green transition-shadow duration-300 group-hover:shadow-[0_0_25px_rgba(137,161,120,0.4)]">
           <div className="w-full overflow-hidden">
             <img 
-                src={getLowResUrl(project.image)} 
+                src={project.image} 
                 alt={project.title} 
                 className="w-full h-auto transition-transform duration-700 group-hover:scale-[1.1] will-change-transform"
                 loading="lazy"
-                decoding="async"
                 onError={handleImageError}
                 referrerPolicy="no-referrer"
             />
@@ -80,10 +82,10 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
           </div>
       </div>
       <div className="mt-4 px-2">
-         <h3 className="text-base font-bold text-design-black mb-1 uppercase tracking-tight">{project.title}</h3>
+         <h3 className="text-base font-bold text-white mb-1 uppercase tracking-tight">{project.title}</h3>
          <div className="flex items-center justify-between opacity-50">
-            <p className="text-[10px] font-mono uppercase tracking-widest text-design-black">{project.category}</p>
-            <span className="text-[10px] font-mono text-design-black">{project.year}</span>
+            <p className="text-[10px] font-mono uppercase tracking-widest">{project.category}</p>
+            <span className="text-[10px] font-mono">{project.year}</span>
          </div>
       </div>
     </motion.div>
@@ -93,6 +95,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
 const Portfolio: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeFilter, setActiveFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(false);
   const [viewHighRes, setViewHighRes] = useState<string | null>(null);
@@ -170,10 +173,20 @@ const Portfolio: React.FC = () => {
   }, [showAll]);
 
   const filteredProjects = useMemo(() => {
-    return activeFilter === 'All' 
+    let filtered = activeFilter === 'All' 
       ? allProjects 
       : allProjects.filter(p => p.category === activeFilter);
-  }, [activeFilter, allProjects]);
+    
+    if (searchQuery) {
+      const lowerQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter(p => 
+        p.title.toLowerCase().includes(lowerQuery) ||
+        p.description.toLowerCase().includes(lowerQuery) ||
+        (p.technologies && p.technologies.some(tech => tech.toLowerCase().includes(lowerQuery)))
+      );
+    }
+    return filtered;
+  }, [activeFilter, allProjects, searchQuery]);
 
   const handleLoadMore = () => {
     setLoading(true);
@@ -190,6 +203,27 @@ const Portfolio: React.FC = () => {
       portfolioSection.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  const headerRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      if (headerRef.current) {
+        gsap.from(headerRef.current, {
+          opacity: 0,
+          y: 40,
+          duration: 0.8,
+          ease: "power3.out",
+          scrollTrigger: {
+            trigger: headerRef.current,
+            start: "top 85%",
+            toggleActions: "play none none reverse"
+          }
+        });
+      }
+    }, headerRef);
+    return () => ctx.revert();
+  }, []);
 
   // --- Website Code: Project Details Memoization ---
   const details = useMemo(() => 
@@ -215,32 +249,79 @@ const Portfolio: React.FC = () => {
   const displayDescription = currentProcessStep?.description || (currentImageIndex === 0 ? 'First sketch' : `Process Image ${currentImageIndex + 1}`);
 
   return (
-    <section id="portfolio" className="py-20 md:py-32 bg-transparent relative text-design-black transition-colors duration-500">
-      <div className="max-w-[1920px] mx-auto px-4 sm:px-6 relative">
+    <section id="portfolio" className="py-20 md:py-32 bg-design-black relative text-white transition-colors duration-500 rounded-2xl border border-white/10">
+      <div className="max-w-[1920px] 2xl:max-w-[90rem] mx-auto px-4 sm:px-6 relative">
         
         {/* --- Website Code: Header Section --- */}
-        <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 px-2 border-b border-black/10 pb-12 sticky top-20 z-40 bg-transparent py-4 transition-all duration-300">
+        <div ref={headerRef} className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 px-2 border-b border-white/10 pb-12 sticky top-20 z-40 bg-design-black/90 backdrop-blur-sm py-4 transition-all duration-300">
             <div>
-               <span className="block text-xs font-mono uppercase tracking-widest mb-4 text-design-black/60">
-                 <DecryptedText text="The Archive" speed={30} revealDelay={200} />
-               </span>
-               <h2 className="text-6xl md:text-7xl lg:text-9xl font-display font-medium text-design-black uppercase tracking-tighter leading-[0.75]">
-                  SIMPSON <br/><span className="italic font-serif font-light opacity-30">Archive</span>
+                 <span className="block text-xs font-mono uppercase tracking-widest mb-4 text-design-green">
+                   <DecryptedText text="The Archive" speed={30} revealDelay={200} />
+                 </span>
+               <h2 className="text-6xl md:text-7xl lg:text-9xl font-display font-medium text-white uppercase tracking-tighter leading-[0.75] flex flex-col items-start">
+                  <ThreeDTextReveal text="SIMPSON" className="block" />
+                  <span className="italic font-serif font-light opacity-30 mt-2">
+                    <SplitText text="Archive" delay={0.4} />
+                  </span>
                </h2>
             </div>
-           <ProjectFilter activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+            <div className="flex flex-col gap-4 items-end w-full md:w-auto">
+                <div className="relative w-full md:w-80 group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-design-green transition-colors" />
+                  <input 
+                    type="text"
+                    placeholder="Search projects, tech, or keywords..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-white/5 border border-white/10 rounded-full pl-12 pr-12 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-design-green focus:bg-white/10 transition-all w-full"
+                  />
+                  {searchQuery && (
+                    <button 
+                      onClick={() => setSearchQuery('')}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
+                      aria-label="Clear search"
+                    >
+                      <X className="w-3 h-3 text-white/50" />
+                    </button>
+                  )}
+                </div>
+              <ProjectFilter activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+            </div>
         </div>
 
         {/* --- Website Code: Project Grid --- */}
-        <div className="columns-1 sm:columns-2 md:columns-3 2xl:columns-4 gap-6 w-full mx-auto px-2">
-          <AnimatePresence>
-            {filteredProjects.map((project) => (
-              <ProjectCard 
-                key={project.id} 
-                project={project} 
-                onClick={() => setSelectedProject(project)} 
-              />
-            ))}
+        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 w-full mx-auto px-2 [column-fill:_balance] min-h-[400px]">
+          <AnimatePresence mode="popLayout">
+            {filteredProjects.length > 0 ? (
+              filteredProjects.map((project) => (
+                <ProjectCard 
+                  key={project.id} 
+                  project={project} 
+                  onClick={() => setSelectedProject(project)} 
+                />
+              ))
+            ) : (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="col-span-full flex flex-col items-center justify-center py-20 text-center"
+              >
+                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-6">
+                  <Search className="w-8 h-8 text-white/20" />
+                </div>
+                <h3 className="text-2xl font-display font-medium mb-2">No projects found</h3>
+                <p className="text-white/50 max-w-md">
+                  We couldn't find any projects matching "{searchQuery}". 
+                  Try adjusting your search or filter.
+                </p>
+                <button 
+                  onClick={() => { setSearchQuery(''); setActiveFilter('All'); }}
+                  className="mt-8 text-design-green hover:underline font-mono text-sm uppercase tracking-widest"
+                >
+                  Clear all filters
+                </button>
+              </motion.div>
+            )}
           </AnimatePresence>
         </div>
         
@@ -250,12 +331,12 @@ const Portfolio: React.FC = () => {
               <button 
                   onClick={showAll ? handleCloseArchive : handleLoadMore}
                   disabled={loading}
-                  className="group relative px-12 py-5 bg-transparent border-2 border-black/20 overflow-hidden rounded-full transition-all hover:border-black focus:outline-none focus:ring-2 focus:ring-design-blue"
+                  className="group relative px-12 py-5 bg-transparent border-2 border-white/20 overflow-hidden rounded-full transition-all hover:border-white focus:outline-none focus:ring-2 focus:ring-design-blue"
               >
-                  <span className="relative z-10 text-xs font-bold uppercase tracking-widest text-design-black group-hover:text-white transition-colors">
+                  <span className="relative z-10 text-xs font-bold uppercase tracking-widest text-white group-hover:text-design-black transition-colors">
                       {loading ? "Warming Up..." : showAll ? "Close Complete Archive" : "Load Complete Archive"}
                   </span>
-                  <div className="absolute inset-0 bg-design-black transform translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                  <div className="absolute inset-0 bg-white transform translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
               </button>
             </ParallaxFloat>
         </div>
@@ -285,6 +366,7 @@ const Portfolio: React.FC = () => {
               >
                 <button 
                   onClick={() => setSelectedProject(null)}
+                  aria-label="Close project details"
                   className="absolute top-4 right-4 md:top-6 md:right-6 z-[1020] w-10 h-10 flex items-center justify-center bg-white/80 backdrop-blur-md text-design-black rounded-full hover:rotate-90 transition-transform duration-500 shadow-md focus:outline-none focus:ring-2 focus:ring-design-blue"
                 >
                   <X size={20} className="w-5 h-5" />
@@ -295,7 +377,7 @@ const Portfolio: React.FC = () => {
                   <motion.div 
                      initial={{ opacity: 0, x: -50 }}
                      animate={{ opacity: 1, x: 0 }}
-                     transition={{ delay: 0.2, duration: 0.8, ease: "circOut" }}
+                     transition={{ delay: 0.1, duration: 0.4, ease: "circOut" }}
                      className="w-full md:w-[45%] h-auto min-h-[40vh] md:h-full shrink-0 bg-[#e0e0e0] relative group flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16 overflow-hidden"
                   >
                       <div className="relative w-full h-full flex items-center justify-center">
@@ -305,14 +387,14 @@ const Portfolio: React.FC = () => {
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
-                                    transition={{ duration: 0.3 }}
+                                    transition={{ duration: 0.2 }}
                                     className="absolute inset-0 flex items-center justify-center overflow-hidden"
                                 >
                                     <div className="relative flex items-center justify-center w-fit h-fit max-w-[calc(100%-5rem)] max-h-[calc(100%-5rem)] md:max-w-[calc(100%-7rem)] md:max-h-[calc(100%-7rem)] min-w-0 min-h-0">
                                         <img 
                                             src={projectImages[currentImageIndex]} 
                                             alt={`${selectedProject.title} - ${selectedProject.category} project featuring ${displayDescription}`} 
-                                            className="max-w-full max-h-full object-contain shadow-2xl cursor-zoom-in rounded-lg"
+                                            className="max-w-full max-h-full object-contain shadow-2xl cursor-default rounded-lg"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               setViewHighRes(getHighResUrl(projectImages[currentImageIndex]));
@@ -359,7 +441,7 @@ const Portfolio: React.FC = () => {
                   <motion.div 
                       initial={{ opacity: 0, x: 50 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3, duration: 0.8, ease: "circOut" }}
+                      transition={{ delay: 0.15, duration: 0.4, ease: "circOut" }}
                       className="w-full md:w-[55%] flex-1 md:h-full bg-[#f4f5f6] p-5 sm:p-8 md:p-10 lg:p-16 flex flex-col md:overflow-y-auto"
                   >
                       <motion.div 
@@ -507,11 +589,12 @@ const Portfolio: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-12 cursor-zoom-out"
+                  className="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-12 cursor-default"
                   onClick={() => setViewHighRes(null)}
               >
                   <button 
                       onClick={() => setViewHighRes(null)}
+                      aria-label="Close high resolution image"
                       className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all z-[2010] focus:outline-none focus:ring-2 focus:ring-white"
                   >
                       <X size={24} />

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap');
 @import "tailwindcss";
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -7,16 +8,17 @@
   --font-display: "Oswald", sans-serif;
   --font-mono: "Courier Prime", ui-monospace, SFMono-Regular, monospace;
   --font-serif: "Playfair Display", serif;
+  --font-garamond: "EB Garamond", serif;
   --font-montserrat: "Montserrat", sans-serif;
   --font-modak: "Modak", system-ui;
 
   --color-design-black: #1E1E1E;
   --color-design-white: #ffffff;
-  --color-design-blue: #A2D2FF;
-  --color-design-green: #C1E1C1;
+  --color-design-blue: #a3b18a;
+  --color-design-green: #89a178;
   --color-design-cream: #FDFCF0;
   
-  --shadow-flat: 4px 4px 0px 0px rgba(162,210,255,0.4);
+  --shadow-flat: 4px 4px 0px 0px rgba(163,177,138,0.4);
   --shadow-flat-lg: 8px 8px 0px 0px rgba(30,30,30,0.2);
   --shadow-flat-white: 4px 4px 0px 0px rgba(255,255,255,1);
   --shadow-flat-white-lg: 8px 8px 0px 0px rgba(255,255,255,1);
@@ -48,13 +50,23 @@
   }
   
   .dark {
-    --color-design-blue: #7FB5FF;
-    --color-design-green: #98C198;
+    --color-design-blue: #b5c49b;
+    --color-design-green: #89a178;
     --color-design-cream: #1A1A1A;
   }
   
+  html, body {
+    overflow-x: visible;
+    overflow-y: auto;
+    height: auto;
+  }
+  
+  img {
+    cursor: default;
+  }
+  
   body {
-    @apply bg-design-cream text-design-black transition-colors duration-300 overflow-x-hidden relative;
+    @apply bg-design-cream text-design-black transition-colors duration-300 relative;
   }
   .dark body {
     @apply bg-design-black text-design-cream;
@@ -62,16 +74,20 @@
   
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #A2D2FF; }
+  ::-webkit-scrollbar-thumb { background: #a3b18a; }
   
   ::selection {
-    background: #A2D2FF;
+    background: #a3b18a;
     color: #000;
   }
 
   *:focus-visible {
     outline: 2px solid var(--color-design-blue);
     outline-offset: 2px;
+  }
+
+  button, a {
+    @apply active:scale-95 hover:scale-105 transition-all duration-300 ease-in-out;
   }
 }
 
@@ -121,5 +137,17 @@
   
   .dark .hover-stroke-modak:hover {
     -webkit-text-stroke: 4px #F8F9FA;
+  }
+
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  .backface-hidden {
+    backface-visibility: hidden;
   }
 }

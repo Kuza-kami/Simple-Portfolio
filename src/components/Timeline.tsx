@@ -1,7 +1,7 @@
-import React, { useRef, useState, useEffect, useMemo } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { X, Award, FileText, Fingerprint, MapPin, ShieldCheck } from 'lucide-react';
+import { X, Award, FileText, Calendar, MapPin, ShieldCheck } from 'lucide-react';
 import { timelineEvents } from '../data/content';
 import { ParallaxFloat, BlurReveal } from './TextAnimations';
 import BlurText from './BlurText';
@@ -14,11 +14,6 @@ const Timeline: React.FC = () => {
   const containerRef = useRef<HTMLElement>(null);
   const [selectedEvent, setSelectedEvent] = useState<typeof timelineEvents[0] | null>(null);
 
-  // Generate a stable random ID for the selected event
-  const archiveId = useMemo(() => {
-    if (!selectedEvent) return null;
-    return Math.floor(Math.random() * 8999) + 1000;
-  }, [selectedEvent]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -29,18 +24,19 @@ const Timeline: React.FC = () => {
       events.forEach((element, index) => {
         gsap.fromTo(
           element,
-          { opacity: 0, y: 30 },
+          { opacity: 0, y: 40, scale: 0.95 },
           {
             opacity: 1,
             y: 0,
-            duration: 0.7,
-            delay: (index % 2) * 0.2,
+            scale: 1,
+            duration: 0.8,
+            delay: (index % 2) * 0.1,
+            ease: "power3.out",
             scrollTrigger: {
               trigger: element,
-              start: 'top 80%',
-              end: 'top 50%',
-              scrub: 0.3,
-              markers: false
+              start: 'top 85%',
+              toggleActions: "play none none reverse",
+              invalidateOnRefresh: true,
             }
           }
         );
@@ -63,6 +59,15 @@ const Timeline: React.FC = () => {
       restDelta: 0.001
   });
 
+  // --- ADD THESE NEW TRANSFORMS ---
+  // Phase 1 (0 to 0.9): Line and Needle move to 96.5% and STOP.
+  const threadScale = useTransform(scaleY, [0, 0.9, 1], [0, 0.965, 0.965]);
+  const needleTop = useTransform(scaleY, [0, 0.9, 1], ["0%", "96.5%", "96.5%"]);
+  
+  // Phase 2 (0.9 to 1): Pill fills up AFTER the needle stops.
+  const pillFillScale = useTransform(scaleY, [0.9, 0.98], [0, 1], { clamp: true });
+  const pillTextColor = useTransform(scaleY, [0.9, 0.95], ['#1a1a1a', '#000000'], { clamp: true });
+
   // Lock body scroll when modal is open
   useEffect(() => {
     if (selectedEvent) {
@@ -76,8 +81,8 @@ const Timeline: React.FC = () => {
   }, [selectedEvent]);
 
   return (
-    <section ref={containerRef} id="timeline" className="py-16 md:py-32 bg-transparent relative overflow-hidden transition-colors duration-500">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-6 relative">
+    <section ref={containerRef} id="timeline" className="py-8 md:py-16 bg-white dark:bg-[#0f0f0f] relative overflow-x-hidden transition-colors duration-500">
+        <div className="max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 sm:px-6 md:px-6 relative" style={{ minHeight: '1415px' }}>
           
           {/* Header */}
           <ParallaxFloat offset={15}>
@@ -109,14 +114,14 @@ const Timeline: React.FC = () => {
                 {/* Active Thread Line */}
                 <motion.div 
                     className="absolute top-0 left-0 w-full bg-design-black dark:bg-white origin-top"
-                    style={{ scaleY }}
+                    style={{ scaleY: threadScale }}
                 />
 
                 {/* Needle Tip */}
                 <motion.div
-                    className="absolute left-1/2 -translate-x-1/2 w-6 h-12"
+                    className="absolute left-1/2 -translate-x-1/2 w-6 h-12 z-0"
                     style={{ 
-                        top: useTransform(scaleY, (v) => `${v * 100}%`),
+                        top: needleTop,
                     }}
                 >
                     {/* Needle Graphic */}
@@ -131,18 +136,14 @@ const Timeline: React.FC = () => {
                 </motion.div>
              </div>
         </div>
-        <div className="space-y-12 md:space-y-32 relative z-10 pb-16 md:pb-32">
+        <div className="space-y-8 md:space-y-16 relative z-10 pb-8 md:pb-16">
            {timelineEvents.map((event, index) => {
                const isEven = index % 2 === 0;
                 return (
-                   <motion.div 
+                   <div 
                         key={index}
                         data-gsap-timeline
-                        initial={{ opacity: 0, y: 50, scale: 0.9 }}
-                        whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                        viewport={{ once: true, amount: 0.3 }}
-                        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-                        className={`relative flex flex-col md:flex-row ${isEven ? 'md:flex-row-reverse' : ''} items-center group cursor-pointer`}
+                        className={`relative flex flex-col md:flex-row ${isEven ? 'md:flex-row-reverse' : ''} items-center group cursor-pointer will-change-transform`}
                         onClick={() => setSelectedEvent(event)}
                    >
                          {/* Dot on line */}
@@ -191,15 +192,29 @@ const Timeline: React.FC = () => {
                                  </div>
                              </div>
                         </div>
-                   </motion.div>
+                   </div>
                );
            })}
            
            {/* Final Knot/End */}
-           <div className="relative flex justify-center pt-12 pl-8 md:pl-0">
-             <div className="bg-design-cream border-2 border-design-black px-6 py-2 z-10 font-mono text-xs uppercase tracking-widest rounded-full shadow-flat">
-                   MORE COMING SOON
-               </div>
+           <div className="relative flex justify-center pt-6 pl-8 md:pl-0">
+             <div className="relative overflow-hidden bg-design-cream border-2 border-design-black px-8 py-3 z-10 font-mono text-xs uppercase tracking-widest shadow-flat rounded-full">
+                {/* Animated Fill Circle (Inspired by PillNav) */}
+                <motion.div 
+                  className="absolute inset-0 bg-design-green pointer-events-none origin-bottom"
+                  style={{ 
+                    scaleY: pillFillScale
+                  }}
+                />
+                <motion.span 
+                  className="relative z-10 block"
+                  style={{ 
+                    color: pillTextColor
+                  }}
+                >
+                  MORE COMING SOON
+                </motion.span>
+              </div>
            </div>
         </div>
 
@@ -228,6 +243,7 @@ const Timeline: React.FC = () => {
                   {/* Close Button */}
                   <button 
                       onClick={() => setSelectedEvent(null)}
+                      aria-label="Close modal"
                       className="absolute top-6 right-6 z-50 w-10 h-10 bg-black/20 text-white backdrop-blur-md rounded-full flex items-center justify-center hover:bg-design-blue hover:text-black transition-colors"
                   >
                       <X size={20} />
@@ -248,7 +264,7 @@ const Timeline: React.FC = () => {
                       {/* Certificate Badge Overlay */}
                       <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12 max-w-xs">
                           <div className="flex items-center gap-3 mb-2 md:mb-4">
-                              <div className="w-10 h-10 md:w-12 md:h-12 bg-design-green rounded-full flex items-center justify-center text-black shadow-[0_0_20px_rgba(180,197,168,0.4)]">
+                              <div className="w-10 h-10 md:w-12 md:h-12 bg-design-green rounded-full flex items-center justify-center text-black shadow-[0_0_20px_rgba(137,161,120,0.4)]">
                                   <Award size={20} className="md:w-6 md:h-6" />
                               </div>
                               <div className="bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full">
@@ -298,11 +314,11 @@ const Timeline: React.FC = () => {
                               <div className="grid grid-cols-1 gap-3 md:gap-4">
                                   <div className="flex items-start gap-4">
                                       <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-gray-400 border border-gray-200 shrink-0">
-                                          <Fingerprint size={16} />
+                                          <Calendar size={16} />
                                       </div>
                                       <div>
-                                          <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Record ID</span>
-                                          <span className="font-mono text-sm">ARCH-{selectedEvent.year}-{archiveId}</span>
+                                          <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Date of Completion</span>
+                                          <span className="font-mono text-sm">{(selectedEvent as any).completionDate}</span>
                                       </div>
                                   </div>
 
