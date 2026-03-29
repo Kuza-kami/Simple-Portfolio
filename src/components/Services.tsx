@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Mail, Instagram, Download, FileText, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotatingWords, SplitText, ParallaxFloat, ThreeDTextReveal } from './TextAnimations';
@@ -19,6 +20,20 @@ const Services: React.FC = () => {
     setMissingFileName(filename.replace('_', ' '));
     setShowMissingFileModal(true);
   };
+
+  useEffect(() => {
+    if (showMissingFileModal) {
+      document.body.classList.add('overflow-hidden');
+      document.body.classList.remove('overflow-y-auto');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+      document.body.classList.add('overflow-y-auto');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+      document.body.classList.add('overflow-y-auto');
+    };
+  }, [showMissingFileModal]);
 
   useEffect(() => {
     if (!sectionRef.current) return;
@@ -58,42 +73,52 @@ const Services: React.FC = () => {
 
   return (
     <section ref={sectionRef} id="about" className="py-16 md:py-24 bg-white dark:bg-[#0f0f0f] relative transition-colors duration-500">
-      <AnimatePresence>
-        {showMissingFileModal && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white dark:bg-design-black p-8 rounded-[2rem] shadow-2xl max-w-sm w-full border border-neutral-200 dark:border-neutral-800 text-center relative"
-            >
-              <button 
+      {createPortal(
+        <AnimatePresence>
+          {showMissingFileModal && (
+            <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={() => setShowMissingFileModal(false)}
-                className="absolute top-6 right-6 text-gray-400 hover:text-design-black dark:hover:text-white transition-colors"
+              />
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white dark:bg-design-black p-8 rounded-[2rem] shadow-2xl max-w-sm w-full border border-neutral-200 dark:border-neutral-800 text-center relative z-10"
               >
-                <X size={20} />
-              </button>
+                <button 
+                  onClick={() => setShowMissingFileModal(false)}
+                  className="absolute top-6 right-6 text-gray-400 hover:text-design-black dark:hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
 
-              <div className="w-16 h-16 bg-design-blue/20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <FileText className="text-design-blue w-8 h-8" />
-              </div>
-              
-              <h3 className="text-2xl font-display font-bold text-design-black dark:text-white mb-2 uppercase tracking-tight">File Not Found</h3>
-              
-              <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm leading-relaxed">
-                The requested document <span className="font-mono text-design-blue font-bold">{missingFileName}</span> is currently being updated and is not available for download at this moment.
-              </p>
-              
-              <button 
-                onClick={() => setShowMissingFileModal(false)}
-                className="w-full py-4 bg-design-black dark:bg-white text-white dark:text-design-black rounded-full font-bold uppercase tracking-widest text-xs hover:opacity-90 transition-opacity shadow-flat dark:shadow-flat-white"
-              >
-                Understood
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                <div className="w-16 h-16 bg-design-blue/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <FileText className="text-design-blue w-8 h-8" />
+                </div>
+                
+                <h3 className="text-2xl font-display font-bold text-design-black dark:text-white mb-2 uppercase tracking-tight">File Not Found</h3>
+                
+                <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm leading-relaxed">
+                  The requested document <span className="font-mono text-design-blue font-bold">{missingFileName}</span> is currently being updated and is not available for download at this moment.
+                </p>
+                
+                <button 
+                  onClick={() => setShowMissingFileModal(false)}
+                  className="w-full py-4 bg-design-black dark:bg-white text-white dark:text-design-black rounded-full font-bold uppercase tracking-widest text-xs hover:opacity-90 transition-opacity shadow-flat dark:shadow-flat-white"
+                >
+                  Understood
+                </button>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
       <div className="max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 sm:px-6 md:px-6 relative z-10">
         
@@ -168,8 +193,8 @@ const Services: React.FC = () => {
 
               {/* Download Buttons */}
               <div>
-                  <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-gray-500 mb-3 md:mb-4 block">Resources</span>
-                  <div className="flex flex-row items-center justify-center gap-3 w-full">
+                  <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-gray-500 mb-3 md:mb-4 block text-right md:text-left">Resources</span>
+                  <div className="flex flex-row items-center justify-end md:justify-center gap-3 w-full">
                       <button 
                         onClick={() => handleDownload('/cv.pdf', 'Simpson_CV.pdf')}
                         className="flex-1 max-w-[160px] flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-design-black dark:bg-white text-white dark:text-design-black rounded-full font-bold uppercase text-[11px] md:text-xs tracking-wider md:tracking-widest shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"

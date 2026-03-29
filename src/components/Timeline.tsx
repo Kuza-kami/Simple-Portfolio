@@ -71,12 +71,15 @@ const Timeline: React.FC = () => {
   // Lock body scroll when modal is open
   useEffect(() => {
     if (selectedEvent) {
-      document.body.style.overflow = 'hidden';
+      document.body.classList.add('overflow-hidden');
+      document.body.classList.remove('overflow-y-auto');
     } else {
-      document.body.style.overflow = '';
+      document.body.classList.remove('overflow-hidden');
+      document.body.classList.add('overflow-y-auto');
     }
     return () => {
-      document.body.style.overflow = '';
+      document.body.classList.remove('overflow-hidden');
+      document.body.classList.add('overflow-y-auto');
     };
   }, [selectedEvent]);
 
@@ -224,7 +227,7 @@ const Timeline: React.FC = () => {
       {createPortal(
         <AnimatePresence>
           {selectedEvent && (
-            <div className="fixed inset-0 z-[1000] overflow-y-auto flex justify-center items-start md:items-center p-0 md:p-8">
+            <div className="fixed inset-0 z-[9999] overflow-y-auto flex justify-center items-start md:items-center p-0 md:p-8">
                <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}

@@ -242,9 +242,46 @@ const Portfolio: React.FC = () => {
     setCurrentImageIndex((prev) => (prev - 1 + projectImages.length) % projectImages.length);
   };
 
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 50;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEndHandler = () => {
+    if (!touchStart || !touchEnd || projectImages.length <= 1) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe) {
+      setCurrentImageIndex((prev) => (prev + 1) % projectImages.length);
+    }
+    if (isRightSwipe) {
+      setCurrentImageIndex((prev) => (prev - 1 + projectImages.length) % projectImages.length);
+    }
+  };
+
   useEffect(() => {
-    document.body.style.overflow = selectedProject || viewHighRes ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
+    if (selectedProject || viewHighRes) {
+      document.body.classList.add('overflow-hidden');
+      document.body.classList.remove('overflow-y-auto');
+    } else {
+      document.body.classList.remove('overflow-hidden');
+      document.body.classList.add('overflow-y-auto');
+    }
+    return () => {
+      document.body.classList.remove('overflow-hidden');
+      document.body.classList.add('overflow-y-auto');
+    };
   }, [selectedProject, viewHighRes]);
 
   useEffect(() => {
@@ -518,7 +555,7 @@ const Portfolio: React.FC = () => {
       {createPortal(
         <AnimatePresence>
           {selectedProject && (
-            <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center px-4 p-0 md:p-8">
+            <div className="fixed inset-0 z-[9999] overflow-y-auto flex items-center justify-center px-4 p-0 md:p-8">
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -554,16 +591,18 @@ const Portfolio: React.FC = () => {
                      className="w-full md:w-[45%] h-auto min-h-[40vh] md:h-full shrink-0 bg-[#e0e0e0] relative group flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16"
                   >
                       <div className="relative w-full flex items-center justify-center">
-                            <AnimatePresence mode="wait">
                                 <motion.div
-                                    key={currentImageIndex}
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
                                     className="relative w-full flex items-center justify-center"
                                 >
-                                    <div className="relative flex items-center justify-center w-fit h-fit max-w-[calc(100%-5rem)] max-h-[calc(100%-5rem)] md:max-w-[calc(100%-7rem)] md:max-h-[calc(100%-7rem)] min-w-0 min-h-0 group/image">
+                                    <div 
+                                        className="relative flex items-center justify-center w-fit h-fit max-w-[calc(100%-5rem)] max-h-[calc(100%-5rem)] md:max-w-[calc(100%-7rem)] md:max-h-[calc(100%-7rem)] min-w-0 min-h-0 group/image"
+                                        onTouchStart={onTouchStart}
+                                        onTouchMove={onTouchMove}
+                                        onTouchEnd={onTouchEndHandler}
+                                    >
                                         <LazyImage 
                                             src={projectImages[currentImageIndex]} 
                                             alt={`${selectedProject.title} - ${selectedProject.category} project featuring ${displayDescription}`} 
@@ -580,14 +619,14 @@ const Portfolio: React.FC = () => {
                                           <>
                                             <button 
                                               onClick={prevImage}
-                                              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-design-black border border-white/30 opacity-0 group-hover/image:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none"
+                                              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-design-black border border-white/30 opacity-50 hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none"
                                               aria-label="Previous image"
                                             >
                                               <ChevronLeft size={20} />
                                             </button>
                                             <button 
                                               onClick={nextImage}
-                                              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-design-black border border-white/30 opacity-0 group-hover/image:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none"
+                                              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-design-black border border-white/30 opacity-50 hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none"
                                               aria-label="Next image"
                                             >
                                               <ChevronRight size={20} />
@@ -642,7 +681,6 @@ const Portfolio: React.FC = () => {
                                         </div>
                                     </div>
                                 </motion.div>
-                            </AnimatePresence>
                       </div>
                   </motion.div>
 
@@ -811,7 +849,7 @@ const Portfolio: React.FC = () => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   ref={highResModalRef}
-                  className="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-12 cursor-default"
+                  className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-12 cursor-default"
                   onClick={() => setViewHighRes(null)}
               >
                   <button 
