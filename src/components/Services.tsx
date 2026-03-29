@@ -193,8 +193,8 @@ const Services: React.FC = () => {
 
               {/* Download Buttons */}
               <div>
-                  <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-gray-500 mb-3 md:mb-4 block text-right md:text-left">Resources</span>
-                  <div className="flex flex-row items-center justify-end md:justify-center gap-3 w-full">
+                  <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-gray-500 mb-3 md:mb-4 block">Resources</span>
+                  <div className="flex flex-row items-center justify-start md:justify-center gap-3 w-full">
                       <button 
                         onClick={() => handleDownload('/cv.pdf', 'Simpson_CV.pdf')}
                         className="flex-1 max-w-[160px] flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-design-black dark:bg-white text-white dark:text-design-black rounded-full font-bold uppercase text-[11px] md:text-xs tracking-wider md:tracking-widest shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
