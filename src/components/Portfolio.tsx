@@ -1,11 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Project } from '../types';
-import { ArrowUpRight, X, Share2, ChevronLeft, ChevronRight, Search } from 'lucide-react';
+import { ArrowUpRight, X, Share2, ChevronLeft, ChevronRight, Search, Check, ImageOff } from 'lucide-react';
 import ProjectFilter from './ProjectFilter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { portfolioProjects } from '../data/content';
-import { handleImageError, getHighResUrl } from '../utils/imageUtils';
+import { getHighResUrl, getBlurredPlaceholderUrl } from '../utils/imageUtils';
 import { moreProjects, getProjectDetails } from '../utils/projectUtils';
 import { ParallaxFloat, DecryptedText, ThreeDTextReveal, SplitText } from './TextAnimations';
 import gsap from 'gsap';
@@ -15,7 +15,77 @@ gsap.registerPlugin(ScrollTrigger);
 
 
 
+
+const LazyImage: React.FC<{ 
+  src: string; 
+  alt: string; 
+  className?: string; 
+  onClick?: (e: React.MouseEvent) => void;
+  priority?: boolean;
+}> = ({ src, alt, className = "", onClick, priority = false }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const blurredSrc = useMemo(() => getBlurredPlaceholderUrl(src), [src]);
+
+  if (hasError) {
+    return (
+      <div className={`relative overflow-hidden bg-gray-100 dark:bg-gray-800 flex flex-col items-center justify-center text-gray-400 ${className}`}>
+        <ImageOff className="w-8 h-8 mb-2 opacity-50" />
+        <span className="text-xs font-mono uppercase tracking-wider">Image Unavailable</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative overflow-hidden ${className}`}>
+      {/* Placeholder */}
+      <img
+        src={blurredSrc}
+        alt={alt}
+        className={`w-full h-auto object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
+        aria-hidden="true"
+        onError={() => setHasError(true)}
+      />
+      
+      {/* Real Image */}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setIsLoaded(true)}
+        onClick={onClick}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        loading={priority ? "eager" : "lazy"}
+        onError={() => setHasError(true)}
+        referrerPolicy="no-referrer"
+      />
+    </div>
+  );
+};
+
 const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ project, onClick }) => {
+  const [copied, setCopied] = useState(false);
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const shareData = {
+      title: project.title,
+      text: project.description,
+      url: window.location.href
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(console.error);
+    } else {
+      // Fallback to clipboard
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }).catch(err => {
+        console.error('Could not copy text: ', err);
+      });
+    }
+  };
+
   return (
     <motion.div 
       onClick={onClick}
@@ -27,7 +97,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
       }}
       role="button"
       tabIndex={0}
-      className="break-inside-avoid-column block w-full mb-6 group cursor-default relative focus:outline-none transition-all duration-300"
+      className="break-inside-avoid block w-full mb-3 group cursor-default relative focus:outline-none transition-all duration-300"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
@@ -39,13 +109,10 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
     >
       <div className="relative rounded-[2rem] overflow-hidden bg-white border border-design-black/5 group-focus:ring-2 group-focus:ring-design-green transition-shadow duration-300 group-hover:shadow-[0_0_25px_rgba(137,161,120,0.4)]">
           <div className="w-full overflow-hidden">
-            <img 
+            <LazyImage 
                 src={project.image} 
                 alt={project.title} 
                 className="w-full h-auto transition-transform duration-700 group-hover:scale-[1.1] will-change-transform"
-                loading="lazy"
-                onError={handleImageError}
-                referrerPolicy="no-referrer"
             />
           </div>
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -60,23 +127,31 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
                        <ArrowUpRight size={18} />
                    </div>
                    <button 
-                       onClick={(e) => {
-                           e.stopPropagation();
-                           if (navigator.share) {
-                               navigator.share({
-                                   title: project.title,
-                                   text: project.description,
-                                   url: window.location.href
-                               }).catch(console.error);
-                           } else {
-                               // Fallback or toast
-                               console.log('Web Share API not supported');
-                           }
-                       }}
-                       className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white hover:text-black transition-colors"
-                       aria-label="Share project"
+                       onClick={handleShare}
+                       className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white hover:text-black transition-colors relative"
+                       aria-label={copied ? "Copied to clipboard" : "Share project"}
                    >
-                       <Share2 size={16} />
+                       <AnimatePresence mode="wait">
+                         {copied ? (
+                           <motion.div
+                             key="check"
+                             initial={{ scale: 0, opacity: 0 }}
+                             animate={{ scale: 1, opacity: 1 }}
+                             exit={{ scale: 0, opacity: 0 }}
+                           >
+                             <Check size={16} className="text-design-green" />
+                           </motion.div>
+                         ) : (
+                           <motion.div
+                             key="share"
+                             initial={{ scale: 0, opacity: 0 }}
+                             animate={{ scale: 1, opacity: 1 }}
+                             exit={{ scale: 0, opacity: 0 }}
+                           >
+                             <Share2 size={16} />
+                           </motion.div>
+                         )}
+                       </AnimatePresence>
                    </button>
               </div>
           </div>
@@ -101,6 +176,21 @@ const Portfolio: React.FC = () => {
   const [viewHighRes, setViewHighRes] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const carouselRef = React.useRef<HTMLDivElement>(null);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+  const modalRef = React.useRef<HTMLDivElement>(null);
+  const highResModalRef = React.useRef<HTMLDivElement>(null);
+  const lastFocusedElementRef = React.useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === '/' && !selectedProject && !viewHighRes) {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedProject, viewHighRes]);
 
   useEffect(() => {
     if (selectedProject) {
@@ -166,6 +256,80 @@ const Portfolio: React.FC = () => {
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
+  }, [selectedProject, viewHighRes]);
+
+  // Focus management for Project Details Modal
+  useEffect(() => {
+    if (selectedProject && !viewHighRes) {
+      lastFocusedElementRef.current = document.activeElement as HTMLElement;
+      const timer = setTimeout(() => {
+        const focusableElements = modalRef.current?.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements && focusableElements.length > 0) {
+          (focusableElements[0] as HTMLElement).focus();
+        }
+      }, 100);
+      return () => {
+        clearTimeout(timer);
+        if (!viewHighRes && lastFocusedElementRef.current) {
+          lastFocusedElementRef.current.focus();
+        }
+      };
+    }
+  }, [selectedProject, viewHighRes]);
+
+  // Focus management for High Res Modal
+  useEffect(() => {
+    if (viewHighRes) {
+      const prevFocus = document.activeElement as HTMLElement;
+      const timer = setTimeout(() => {
+        const focusableElements = highResModalRef.current?.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements && focusableElements.length > 0) {
+          (focusableElements[0] as HTMLElement).focus();
+        }
+      }, 100);
+      return () => {
+        clearTimeout(timer);
+        if (prevFocus) prevFocus.focus();
+      };
+    }
+  }, [viewHighRes]);
+
+  // Focus trap logic
+  useEffect(() => {
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      
+      const activeModalRef = viewHighRes ? highResModalRef : (selectedProject ? modalRef : null);
+      if (!activeModalRef?.current) return;
+
+      const focusableElements = activeModalRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      
+      if (!focusableElements || focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0] as HTMLElement;
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+
+      if (e.shiftKey) {
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        }
+      } else {
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleTabKey);
+    return () => window.removeEventListener('keydown', handleTabKey);
   }, [selectedProject, viewHighRes]);
 
   const allProjects = useMemo(() => {
@@ -258,7 +422,7 @@ const Portfolio: React.FC = () => {
                  <span className="block text-xs font-mono uppercase tracking-widest mb-4 text-design-green">
                    <DecryptedText text="The Archive" speed={30} revealDelay={200} />
                  </span>
-               <h2 className="text-6xl md:text-7xl lg:text-9xl font-display font-medium text-white uppercase tracking-tighter leading-[0.75] flex flex-col items-start">
+               <h2 className="text-[clamp(4rem,_10vw,_12rem)] font-display font-medium text-white uppercase tracking-tighter leading-[0.75] flex flex-col items-start">
                   <ThreeDTextReveal text="SIMPSON" className="block" />
                   <span className="italic font-serif font-light opacity-30 mt-2">
                     <SplitText text="Archive" delay={0.4} />
@@ -266,31 +430,39 @@ const Portfolio: React.FC = () => {
                </h2>
             </div>
             <div className="flex flex-col gap-4 items-end w-full md:w-auto">
-                <div className="relative w-full md:w-80 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30 group-focus-within:text-design-green transition-colors" />
+                <div className="relative w-full md:w-96 group">
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
+                    <Search className="w-4 h-4 text-white/30 group-focus-within:text-design-green transition-colors" />
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-white/20 group-focus-within:hidden">Search</span>
+                  </div>
                   <input 
+                    ref={searchInputRef}
                     type="text"
-                    placeholder="Search projects, tech, or keywords..."
+                    placeholder="Title, description, or tech..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="bg-white/5 border border-white/10 rounded-full pl-12 pr-12 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-design-green focus:bg-white/10 transition-all w-full"
+                    className="bg-white/5 border border-white/10 rounded-full pl-24 pr-12 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-design-green focus:bg-white/10 transition-all w-full"
                   />
-                  {searchQuery && (
-                    <button 
-                      onClick={() => setSearchQuery('')}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
-                      aria-label="Clear search"
-                    >
-                      <X className="w-3 h-3 text-white/50" />
-                    </button>
-                  )}
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    {searchQuery ? (
+                      <button 
+                        onClick={() => setSearchQuery('')}
+                        className="p-1 hover:bg-white/10 rounded-full transition-colors"
+                        aria-label="Clear search"
+                      >
+                        <X className="w-3 h-3 text-white/50" />
+                      </button>
+                    ) : (
+                      <span className="hidden md:block px-1.5 py-0.5 rounded border border-white/10 text-[10px] font-mono text-white/20">/</span>
+                    )}
+                  </div>
                 </div>
               <ProjectFilter activeFilter={activeFilter} onFilterChange={setActiveFilter} />
             </div>
         </div>
 
         {/* --- Website Code: Project Grid --- */}
-        <div className="columns-1 sm:columns-2 lg:columns-3 xl:columns-4 gap-6 w-full mx-auto px-2 [column-fill:_balance] min-h-[400px]">
+        <div className="columns-2 sm:columns-3 lg:columns-4 gap-3 px-3 [column-fill:_balance] min-h-[400px]">
           <AnimatePresence mode="popLayout">
             {filteredProjects.length > 0 ? (
               filteredProjects.map((project) => (
@@ -326,7 +498,7 @@ const Portfolio: React.FC = () => {
         </div>
         
         {/* --- Website Code: Load More Button --- */}
-        <div className="mt-32 flex justify-center">
+        <div className="mt-12 flex justify-center">
             <ParallaxFloat offset={-20}>
               <button 
                   onClick={showAll ? handleCloseArchive : handleLoadMore}
@@ -346,7 +518,7 @@ const Portfolio: React.FC = () => {
       {createPortal(
         <AnimatePresence>
           {selectedProject && (
-            <div className="fixed inset-0 z-[1000] overflow-y-auto flex justify-center items-start md:items-center p-0 md:p-8">
+            <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center px-4 p-0 md:p-8">
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -358,11 +530,12 @@ const Portfolio: React.FC = () => {
               />
               
               <motion.div 
-                initial={{ y: "100%", opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: "100%", opacity: 0 }}
-                transition={{ type: "spring", damping: 25, stiffness: 180, mass: 0.8 }}
-                className="relative bg-[#f0f0f0] w-full max-w-[1400px] h-auto min-h-screen md:min-h-0 md:h-[90vh] shadow-2xl flex flex-col md:overflow-hidden rounded-[22px] text-design-black z-[1010] my-0 md:my-8"
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                ref={modalRef}
+                className="relative bg-[#f0f0f0] w-full max-w-[1400px] h-auto max-h-[90dvh] overflow-y-auto shadow-2xl flex flex-col rounded-[22px] text-design-black z-[1010] my-0 md:my-8"
               >
                 <button 
                   onClick={() => setSelectedProject(null)}
@@ -372,15 +545,15 @@ const Portfolio: React.FC = () => {
                   <X size={20} className="w-5 h-5" />
                 </button>
 
-                <div className="flex flex-col md:flex-row h-full md:overflow-hidden">
+                <div className="flex flex-col md:flex-row h-full">
                   {/* --- Website Code: Modal Left Panel (Main Image) --- */}
                   <motion.div 
                      initial={{ opacity: 0, x: -50 }}
                      animate={{ opacity: 1, x: 0 }}
                      transition={{ delay: 0.1, duration: 0.4, ease: "circOut" }}
-                     className="w-full md:w-[45%] h-auto min-h-[40vh] md:h-full shrink-0 bg-[#e0e0e0] relative group flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16 overflow-hidden"
+                     className="w-full md:w-[45%] h-auto min-h-[40vh] md:h-full shrink-0 bg-[#e0e0e0] relative group flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16"
                   >
-                      <div className="relative w-full h-full flex items-center justify-center">
+                      <div className="relative w-full flex items-center justify-center">
                             <AnimatePresence mode="wait">
                                 <motion.div
                                     key={currentImageIndex}
@@ -388,22 +561,58 @@ const Portfolio: React.FC = () => {
                                     animate={{ opacity: 1, scale: 1 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{ duration: 0.2 }}
-                                    className="absolute inset-0 flex items-center justify-center overflow-hidden"
+                                    className="relative w-full flex items-center justify-center"
                                 >
-                                    <div className="relative flex items-center justify-center w-fit h-fit max-w-[calc(100%-5rem)] max-h-[calc(100%-5rem)] md:max-w-[calc(100%-7rem)] md:max-h-[calc(100%-7rem)] min-w-0 min-h-0">
-                                        <img 
+                                    <div className="relative flex items-center justify-center w-fit h-fit max-w-[calc(100%-5rem)] max-h-[calc(100%-5rem)] md:max-w-[calc(100%-7rem)] md:max-h-[calc(100%-7rem)] min-w-0 min-h-0 group/image">
+                                        <LazyImage 
                                             src={projectImages[currentImageIndex]} 
                                             alt={`${selectedProject.title} - ${selectedProject.category} project featuring ${displayDescription}`} 
-                                            className="max-w-full max-h-full object-contain shadow-2xl cursor-default rounded-lg"
+                                            className="w-full h-auto object-cover shadow-2xl cursor-default rounded-lg"
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               setViewHighRes(getHighResUrl(projectImages[currentImageIndex]));
                                             }}
-                                            onError={handleImageError}
-                                            referrerPolicy="no-referrer"
-                                            loading="lazy"
-                                            decoding="async"
+                                            priority={true}
                                         />
+                                        
+                                        {/* --- Website Code: Main Image Navigation Arrows --- */}
+                                        {projectImages.length > 1 && (
+                                          <>
+                                            <button 
+                                              onClick={prevImage}
+                                              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-design-black border border-white/30 opacity-0 group-hover/image:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none"
+                                              aria-label="Previous image"
+                                            >
+                                              <ChevronLeft size={20} />
+                                            </button>
+                                            <button 
+                                              onClick={nextImage}
+                                              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-design-black border border-white/30 opacity-0 group-hover/image:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none"
+                                              aria-label="Next image"
+                                            >
+                                              <ChevronRight size={20} />
+                                            </button>
+                                          </>
+                                        )}
+
+                                        {/* --- Website Code: Main Image Carousel Dots --- */}
+                                        {projectImages.length > 1 && (
+                                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                                            {projectImages.map((_, idx) => (
+                                              <button
+                                                key={idx}
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  setCurrentImageIndex(idx);
+                                                }}
+                                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
+                                                  idx === currentImageIndex ? 'bg-design-green w-4' : 'bg-white/40 hover:bg-white/60'
+                                                }`}
+                                                aria-label={`Go to image ${idx + 1}`}
+                                              />
+                                            ))}
+                                          </div>
+                                        )}
                                         
                                         {/* --- Website Code: Dimensions Indicators --- */}
                                         <div className="absolute -right-6 md:-right-10 top-4 bottom-4 flex flex-row items-center justify-center z-20 pointer-events-none hidden sm:flex">
@@ -466,9 +675,22 @@ const Portfolio: React.FC = () => {
                               </p>
                               
                               {selectedProject.extendedDescription && (
-                                  <div className="text-gray-800 font-medium text-sm md:text-base leading-relaxed">
+                                  <div className="text-gray-800 font-medium text-sm md:text-base leading-relaxed mb-6">
                                        <p>{selectedProject.extendedDescription}</p>
                                   </div>
+                              )}
+
+                              {selectedProject.technologies && selectedProject.technologies.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-4">
+                                  {selectedProject.technologies.map((tech, idx) => (
+                                    <span 
+                                      key={idx} 
+                                      className="px-3 py-1 bg-design-black/5 text-design-black/60 text-[10px] font-mono uppercase tracking-wider rounded-md border border-design-black/5"
+                                    >
+                                      {tech}
+                                    </span>
+                                  ))}
+                                </div>
                               )}
                           </div>
 
@@ -502,15 +724,14 @@ const Portfolio: React.FC = () => {
                                                       idx === currentImageIndex ? 'ring-2 sm:ring-4 ring-design-black scale-100' : 'opacity-70 hover:opacity-100 scale-95'
                                                   }`}
                                               >
-                                                  <img 
+                                                  <LazyImage 
                                                       src={img} 
                                                       alt={`${selectedProject.title} process step ${idx + 1}`} 
-                                                      className="w-full h-full object-cover"
-                                                      onError={handleImageError}
-                                                      referrerPolicy="no-referrer"
-                                                      loading="lazy"
-                                                      decoding="async"
+                                                      className="w-full h-full"
                                                   />
+                                                  {idx === currentImageIndex && (
+                                                    <div className="absolute inset-0 bg-design-green/10 border border-design-green/30 pointer-events-none" />
+                                                  )}
                                               </div>
                                           ))}
                                       </div>
@@ -589,6 +810,7 @@ const Portfolio: React.FC = () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
+                  ref={highResModalRef}
                   className="fixed inset-0 z-[2000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-12 cursor-default"
                   onClick={() => setViewHighRes(null)}
               >
@@ -600,16 +822,20 @@ const Portfolio: React.FC = () => {
                       <X size={24} />
                   </button>
 
-                  <motion.img
+                  <motion.div
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       exit={{ scale: 0.9, opacity: 0 }}
-                      src={viewHighRes}
-                      className="max-w-full max-h-full object-contain rounded-[22px] shadow-2xl"
+                      className="max-w-full max-h-full"
                       onClick={(e) => e.stopPropagation()} 
-                      onError={handleImageError}
-                      referrerPolicy="no-referrer"
-                  />
+                  >
+                      <LazyImage 
+                          src={viewHighRes} 
+                          alt="High Resolution View" 
+                          className="w-full h-auto object-cover shadow-2xl rounded-[22px]"
+                          priority={true}
+                      />
+                  </motion.div>
               </motion.div>
           )}
         </AnimatePresence>,

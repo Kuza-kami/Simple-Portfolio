@@ -37,3 +37,10 @@ export const getHighResUrl = (url: string): string => {
   }
   return url;
 };
+
+export const getBlurredPlaceholderUrl = (url: string): string => {
+  if (url.includes('picsum.photos')) {
+    return url.includes('?') ? `${url}&blur=10` : `${url}?blur=10`;
+  }
+  return url;
+};

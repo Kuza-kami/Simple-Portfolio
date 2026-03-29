@@ -69,7 +69,7 @@
     @apply bg-design-cream text-design-black transition-colors duration-300 relative;
   }
   .dark body {
-    @apply bg-design-black text-design-cream;
+    @apply bg-design-cream text-design-cream;
   }
   
   ::-webkit-scrollbar { width: 6px; }

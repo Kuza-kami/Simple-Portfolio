@@ -101,7 +101,7 @@ const Services: React.FC = () => {
         <div className="flex flex-col items-start mb-12 md:mb-20" data-gsap-service>
                 <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-design-blue mb-3 md:mb-4 block">About Me</span>
             
-            <h2 className="text-5xl sm:text-6xl md:text-9xl font-display font-bold text-design-black dark:text-white uppercase leading-none flex flex-col items-start">
+            <h2 className="text-[clamp(4rem,_10vw,_12rem)] font-display font-bold text-design-black dark:text-white uppercase leading-none flex flex-col items-start">
                <ThreeDTextReveal text="About" className="block" />
                <div className="relative inline-block mt-2">
                  <SplitText text="ME" className="font-bold relative z-10" delay={0.3} />
@@ -128,7 +128,8 @@ const Services: React.FC = () => {
                 <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl leading-relaxed text-design-black dark:text-white font-light">
                   <TextHighlight
                     highlightedBits={["Aspiring designer"]}
-                    highlightColor="rgba(137, 161, 120, 0.2)"
+                    highlightColor="transparent"
+                    highlightBackgroundClassName="bg-design-green/40 dark:bg-design-green/50"
                     highlightClassName="rounded-[8px] px-2 py-0.5 text-design-black dark:text-white"
                     blurAmount={0}
                     inactiveOpacity={1}
@@ -139,7 +140,8 @@ const Services: React.FC = () => {
                 <p className="mt-6 md:mt-8 text-base sm:text-lg text-gray-600 dark:text-gray-400 font-light leading-relaxed">
                   <TextHighlight
                     highlightedBits={["structure meets instinct", "communication", "honestly", "earn its place", "work already speaks"]}
-                    highlightColor="rgba(137, 161, 120, 0.2)"
+                    highlightColor="transparent"
+                    highlightBackgroundClassName="bg-design-green/40 dark:bg-design-green/50"
                     highlightClassName="rounded-[8px] px-2 py-0.5 text-design-black dark:text-white"
                     blurAmount={0}
                     inactiveOpacity={1}
@@ -167,17 +169,17 @@ const Services: React.FC = () => {
               {/* Download Buttons */}
               <div>
                   <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-gray-500 mb-3 md:mb-4 block">Resources</span>
-                  <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4">
+                  <div className="flex flex-row items-center justify-center gap-3 w-full">
                       <button 
                         onClick={() => handleDownload('/cv.pdf', 'Simpson_CV.pdf')}
-                        className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-design-black dark:bg-white text-white dark:text-design-black rounded-full font-bold uppercase text-[11px] md:text-xs tracking-wider md:tracking-widest shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                        className="flex-1 max-w-[160px] flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-design-black dark:bg-white text-white dark:text-design-black rounded-full font-bold uppercase text-[11px] md:text-xs tracking-wider md:tracking-widest shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
                       >
                           <FileText size={14} className="md:w-4 md:h-4" />
                           <span>Download CV</span>
                       </button>
                       <button 
                         onClick={() => handleDownload('/portfolio.pdf', 'Simpson_Portfolio.pdf')}
-                        className="flex items-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-white dark:bg-[#1a1a1a] text-design-black dark:text-white border-2 border-design-black dark:border-white rounded-full font-bold uppercase text-[11px] md:text-xs tracking-wider md:tracking-widest shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all group"
+                        className="flex-1 max-w-[160px] flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-white dark:bg-[#1a1a1a] text-design-black dark:text-white border-2 border-design-black dark:border-white rounded-full font-bold uppercase text-[11px] md:text-xs tracking-wider md:tracking-widest shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all group"
                       >
                           <Download size={14} className="md:w-4 md:h-4 group-hover:text-design-blue transition-colors" />
                           <span>Portfolio PDF</span>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Oswald:wght@700&amp;display=swap');
+    text {
+      font-family: 'Oswald', sans-serif;
+      font-weight: 700;
+      font-size: 85px;
+      fill: #1E1E1E;
+    }
+    @media (prefers-color-scheme: dark) {
+      text {
+        fill: #ffffff;
+      }
+    }
+  </style>
+  <text x="50%" y="50%" dominant-baseline="central" text-anchor="middle" dy="0.05em">S</text>
+</svg>

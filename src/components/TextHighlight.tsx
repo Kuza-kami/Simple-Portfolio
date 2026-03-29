@@ -8,6 +8,7 @@ export interface TextHighlightProps {
   highlightedBits?: (string | HighlightBit)[];
   highlightColor?: string;
   highlightClassName?: string;
+  highlightBackgroundClassName?: string;
   blurAmount?: number;
   inactiveOpacity?: number;
   blurDelay?: number;
@@ -72,6 +73,7 @@ export const TextHighlight: React.FC<TextHighlightProps> = ({
   highlightedBits = [],
   highlightColor = "hsl(80, 100%, 50%)",
   highlightClassName = "",
+  highlightBackgroundClassName = "",
   blurAmount = 8,
   inactiveOpacity = 0.3,
   blurDelay = 0,
@@ -106,8 +108,8 @@ export const TextHighlight: React.FC<TextHighlightProps> = ({
             className={`relative inline-block ${highlightClassName}`}
           >
             <motion.span
-              className="absolute inset-0 z-[-1] rounded-[inherit]"
-              style={{ backgroundColor: highlightColor }}
+              className={`absolute inset-0 z-[-1] rounded-[inherit] ${highlightBackgroundClassName}`}
+              style={highlightColor !== "transparent" ? { backgroundColor: highlightColor } : {}}
               initial={{
                 scaleX: highlightDirection === 'left' || highlightDirection === 'right' ? 0 : 1,
                 scaleY: highlightDirection === 'top' || highlightDirection === 'bottom' ? 0 : 1,

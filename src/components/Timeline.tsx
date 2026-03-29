@@ -82,14 +82,14 @@ const Timeline: React.FC = () => {
 
   return (
     <section ref={containerRef} id="timeline" className="py-8 md:py-16 bg-white dark:bg-[#0f0f0f] relative overflow-x-hidden transition-colors duration-500">
-        <div className="max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 sm:px-6 md:px-6 relative" style={{ minHeight: '1415px' }}>
+        <div className="max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 sm:px-6 md:px-6 relative">
           
           {/* Header */}
           <ParallaxFloat offset={15}>
             <BlurReveal>
               <div className="text-center mb-16 md:mb-24 relative z-10">
                    <span className="block text-[10px] sm:text-xs font-mono uppercase tracking-widest mb-2 md:mb-2 text-design-blue">The Process</span>
-                   <h2 className="text-3xl sm:text-4xl md:text-6xl font-display uppercase font-bold text-design-black dark:text-white">
+                   <h2 className="text-[clamp(3rem,_6vw,_8rem)] font-display uppercase font-bold text-design-black dark:text-white leading-none">
                       Awards & <br /><span className="italic font-serif font-light text-gray-400">Experience</span>
                    </h2>
               </div>

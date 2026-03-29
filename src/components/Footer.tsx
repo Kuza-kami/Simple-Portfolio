@@ -8,17 +8,27 @@ const Footer: React.FC = () => {
   const footerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
+    if (!footerRef.current) return;
+
     const ctx = gsap.context(() => {
-      gsap.from(footerRef.current, {
-        opacity: 0,
-        y: 40,
-        duration: 0.8,
-        ease: "power3.out",
-        scrollTrigger: {
-          trigger: footerRef.current,
-          start: "top 90%",
-          toggleActions: "play none none reverse"
-        }
+      const elements = footerRef.current!.querySelectorAll('[data-gsap-footer]');
+      elements.forEach((element, index) => {
+        gsap.fromTo(
+          element,
+          { opacity: 0, y: 40 },
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            delay: index * 0.1,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: element,
+              start: "top 90%",
+              toggleActions: "play none none reverse"
+            }
+          }
+        );
       });
     }, footerRef);
 
@@ -32,10 +42,10 @@ const Footer: React.FC = () => {
           backgroundSize: '32px 32px'
       }}></div>
       <div className="relative z-10 max-w-4xl 2xl:max-w-[90rem] mx-auto px-6">
-          <h2 className="text-7xl font-display font-bold mb-4 tracking-tighter uppercase text-white">
+          <h2 data-gsap-footer className="text-[clamp(4rem,_10vw,_12rem)] font-display font-bold mb-4 tracking-tighter uppercase text-white leading-none">
               Simpson
           </h2>
-          <div className="mb-12">
+          <div data-gsap-footer className="mb-12">
             <p className="text-xs font-mono uppercase tracking-[0.4em] text-design-green mb-6">Available for Projects</p>
             <a 
               href="mailto:amy.simpson@gmail.com" 
@@ -44,7 +54,7 @@ const Footer: React.FC = () => {
               amy.simpson@gmail.com
             </a>
           </div>
-          <div className="flex justify-center flex-wrap gap-8 md:gap-12 mb-16">
+          <div data-gsap-footer className="flex justify-center flex-wrap gap-8 md:gap-12 mb-16">
              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest hover:text-design-green transition-all relative group text-white">
                Instagram
              </a>
@@ -55,7 +65,7 @@ const Footer: React.FC = () => {
                Twitter
              </a>
           </div>
-          <p className="text-gray-400 text-xs font-mono uppercase tracking-[0.3em]">
+          <p data-gsap-footer className="text-gray-400 text-xs font-mono uppercase tracking-[0.3em]">
             © {new Date().getFullYear()} Simpson Studio &bull; Built with Strength and Precision
           </p>
       </div>
