@@ -25,25 +25,32 @@ const LazyImage: React.FC<{
 }> = ({ src, alt, className = "", onClick, priority = false }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
+  const [isRemoved, setIsRemoved] = useState(false);
   
-  // Use a very small version of the image as placeholder if it's from picsum
-  const placeholderSrc = useMemo(() => {
+  // Parse aspect ratio from picsum URL if possible to prevent layout shift
+  const aspectRatio = useMemo(() => {
     if (src.includes('picsum.photos')) {
-      // Replace dimensions with very small ones for a tiny placeholder
       const parts = src.split('/');
       const last = parts[parts.length - 1];
       const secondLast = parts[parts.length - 2];
       
-      if (!isNaN(Number(last)) && !isNaN(Number(secondLast))) {
-          const newParts = [...parts];
-          newParts[newParts.length - 1] = '20';
-          newParts[newParts.length - 2] = '20';
-          const smallUrl = newParts.join('/');
-          return smallUrl.includes('?') ? `${smallUrl}&blur=2` : `${smallUrl}?blur=2`;
+      // Handle cases where there might be query params
+      const cleanLast = last.split('?')[0];
+      const cleanSecondLast = secondLast.split('?')[0];
+      
+      if (!isNaN(Number(cleanLast)) && !isNaN(Number(cleanSecondLast))) {
+          return `${cleanSecondLast} / ${cleanLast}`;
       }
     }
-    return src;
+    return "auto";
   }, [src]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      const timer = setTimeout(() => setIsRemoved(true), 500); // match duration-500
+      return () => clearTimeout(timer);
+    }
+  }, [isLoaded]);
 
   if (hasError) {
     return (
@@ -55,14 +62,14 @@ const LazyImage: React.FC<{
   }
 
   return (
-    <div className={`relative overflow-hidden bg-gray-200 dark:bg-gray-800 ${className}`}>
-      {/* Placeholder - only show if not loaded */}
-      {!isLoaded && (
-        <img
-          src={placeholderSrc}
-          alt=""
-          className="w-full h-full object-cover blur-lg scale-110"
-          aria-hidden="true"
+    <div 
+      className={`relative overflow-hidden ${className}`}
+      style={{ aspectRatio }}
+    >
+      {/* Pulse Skeleton - Pinterest style */}
+      {!isRemoved && (
+        <div 
+          className={`absolute inset-0 bg-gray-200 dark:bg-gray-700 animate-pulse transition-opacity duration-500 z-10 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
         />
       )}
       
@@ -72,7 +79,7 @@ const LazyImage: React.FC<{
         alt={alt}
         onLoad={() => setIsLoaded(true)}
         onClick={onClick}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`w-full h-full object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         loading={priority ? "eager" : "lazy"}
         onError={() => setHasError(true)}
         referrerPolicy="no-referrer"
@@ -191,6 +198,7 @@ const Portfolio: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(false);
   const [viewHighRes, setViewHighRes] = useState<string | null>(null);
@@ -201,6 +209,14 @@ const Portfolio: React.FC = () => {
   const modalRef = React.useRef<HTMLDivElement>(null);
   const highResModalRef = React.useRef<HTMLDivElement>(null);
   const lastFocusedElementRef = React.useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -435,8 +451,8 @@ const Portfolio: React.FC = () => {
       ? allProjects 
       : allProjects.filter(p => p.category === activeFilter);
     
-    if (searchQuery) {
-      const lowerQuery = searchQuery.toLowerCase();
+    if (debouncedSearchQuery) {
+      const lowerQuery = debouncedSearchQuery.toLowerCase();
       filtered = filtered.filter(p => 
         p.title.toLowerCase().includes(lowerQuery) ||
         p.description.toLowerCase().includes(lowerQuery) ||
@@ -444,7 +460,7 @@ const Portfolio: React.FC = () => {
       );
     }
     return filtered;
-  }, [activeFilter, allProjects, searchQuery]);
+  }, [activeFilter, allProjects, debouncedSearchQuery]);
 
   const handleLoadMore = () => {
     setLoading(true);
@@ -577,7 +593,7 @@ const Portfolio: React.FC = () => {
                 </div>
                 <h3 className="text-2xl font-display font-medium mb-2">No projects found</h3>
                 <p className="text-white/50 max-w-md">
-                  We couldn't find any projects matching "{searchQuery}". 
+                  We couldn't find any projects matching "{debouncedSearchQuery}". 
                   Try adjusting your search or filter.
                 </p>
                 <button 

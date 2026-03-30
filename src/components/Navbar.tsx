@@ -125,7 +125,7 @@ const Navbar: React.FC = () => {
         <nav 
             className={`pointer-events-auto transition-all duration-500 ease-out border mt-3 md:mt-6 ${
                 scrolled 
-                ? 'w-full md:w-auto bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border-black/20 dark:border-white/20 rounded-full px-2 py-2 shadow-lg' 
+                ? 'w-full md:w-auto bg-white/80 dark:bg-[#1a1a1a]/80 backdrop-blur-sm border border-black dark:border-white rounded-full px-2 py-2 shadow-lg' 
                 : 'w-full bg-transparent border-transparent px-2 md:px-0 py-3 md:py-4'
             }`}
         >

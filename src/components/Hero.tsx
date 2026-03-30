@@ -61,7 +61,7 @@ const Hero: React.FC = () => {
         <div className="max-w-7xl 2xl:max-w-[90rem] mx-auto w-full flex-1 relative flex flex-col justify-center">
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-design-blue/10 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
         
-        <div className="absolute top-0 left-0 w-full z-10 flex justify-between items-start hero-location opacity-0">
+        <div className="absolute top-0 left-0 w-full z-30 flex justify-between items-start hero-location opacity-0">
             <div className="hidden md:block mt-32">
                 <span className="block text-[9px] sm:text-[10px] font-mono uppercase tracking-widest mb-2 text-design-blue">Location / Time</span>
                 <span className="block text-xs sm:text-sm font-bold uppercase tracking-wider">South Africa / {saTime}</span>
