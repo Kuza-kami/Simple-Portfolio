@@ -154,11 +154,16 @@ export const DecryptedText: React.FC<{ text: string; speed?: number; className?:
       return;
     }
 
-    let interval: any;
+    let animationFrameId: number;
     let iteration = 0;
+    let lastTime = 0;
     
-    const animate = () => {
-      interval = setInterval(() => {
+    const animate = (time: number) => {
+      if (!lastTime) lastTime = time;
+      const deltaTime = time - lastTime;
+
+      // Only update every ~30ms to maintain the "glitch" feel but use RAF for smoothness
+      if (deltaTime >= speed) {
         setDisplayText(() => 
           text
             .split("")
@@ -172,22 +177,31 @@ export const DecryptedText: React.FC<{ text: string; speed?: number; className?:
         );
 
         if (iteration >= text.length) {
-          clearInterval(interval);
+          return; // Stop animation
         }
 
         iteration += 1 / 3;
-      }, speed);
+        lastTime = time;
+      }
+
+      animationFrameId = requestAnimationFrame(animate);
     };
 
     if (isHovered || revealDelay === 0) {
         if (revealDelay > 0) {
-            setTimeout(animate, revealDelay);
+            const timeoutId = setTimeout(() => {
+              animationFrameId = requestAnimationFrame(animate);
+            }, revealDelay);
+            return () => {
+              clearTimeout(timeoutId);
+              cancelAnimationFrame(animationFrameId);
+            };
         } else {
-            animate();
+            animationFrameId = requestAnimationFrame(animate);
         }
     }
 
-    return () => clearInterval(interval);
+    return () => cancelAnimationFrame(animationFrameId);
   }, [text, speed, isHovered, revealDelay, shouldReduceMotion]);
 
   return (

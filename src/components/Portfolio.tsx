@@ -5,7 +5,7 @@ import { ArrowUpRight, X, Share2, ChevronLeft, ChevronRight, Search, Check, Imag
 import ProjectFilter from './ProjectFilter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { portfolioProjects } from '../data/content';
-import { getHighResUrl, getBlurredPlaceholderUrl } from '../utils/imageUtils';
+import { getHighResUrl } from '../utils/imageUtils';
 import { moreProjects, getProjectDetails } from '../utils/projectUtils';
 import { ParallaxFloat, DecryptedText, ThreeDTextReveal, SplitText } from './TextAnimations';
 import gsap from 'gsap';
@@ -25,7 +25,25 @@ const LazyImage: React.FC<{
 }> = ({ src, alt, className = "", onClick, priority = false }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
-  const blurredSrc = useMemo(() => getBlurredPlaceholderUrl(src), [src]);
+  
+  // Use a very small version of the image as placeholder if it's from picsum
+  const placeholderSrc = useMemo(() => {
+    if (src.includes('picsum.photos')) {
+      // Replace dimensions with very small ones for a tiny placeholder
+      const parts = src.split('/');
+      const last = parts[parts.length - 1];
+      const secondLast = parts[parts.length - 2];
+      
+      if (!isNaN(Number(last)) && !isNaN(Number(secondLast))) {
+          const newParts = [...parts];
+          newParts[newParts.length - 1] = '20';
+          newParts[newParts.length - 2] = '20';
+          const smallUrl = newParts.join('/');
+          return smallUrl.includes('?') ? `${smallUrl}&blur=2` : `${smallUrl}?blur=2`;
+      }
+    }
+    return src;
+  }, [src]);
 
   if (hasError) {
     return (
@@ -37,15 +55,16 @@ const LazyImage: React.FC<{
   }
 
   return (
-    <div className={`relative overflow-hidden ${className}`}>
-      {/* Placeholder */}
-      <img
-        src={blurredSrc}
-        alt={alt}
-        className={`w-full h-auto object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-0' : 'opacity-100'}`}
-        aria-hidden="true"
-        onError={() => setHasError(true)}
-      />
+    <div className={`relative overflow-hidden bg-gray-200 dark:bg-gray-800 ${className}`}>
+      {/* Placeholder - only show if not loaded */}
+      {!isLoaded && (
+        <img
+          src={placeholderSrc}
+          alt=""
+          className="w-full h-full object-cover blur-lg scale-110"
+          aria-hidden="true"
+        />
+      )}
       
       {/* Real Image */}
       <img
@@ -53,7 +72,7 @@ const LazyImage: React.FC<{
         alt={alt}
         onLoad={() => setIsLoaded(true)}
         onClick={onClick}
-        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         loading={priority ? "eager" : "lazy"}
         onError={() => setHasError(true)}
         referrerPolicy="no-referrer"
@@ -67,17 +86,18 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
 
   const handleShare = (e: React.MouseEvent) => {
     e.stopPropagation();
+    const shareUrl = `${window.location.origin}${window.location.pathname}#project-${project.id}`;
     const shareData = {
       title: project.title,
       text: project.description,
-      url: window.location.href
+      url: shareUrl
     };
 
     if (navigator.share) {
       navigator.share(shareData).catch(console.error);
     } else {
       // Fallback to clipboard
-      navigator.clipboard.writeText(window.location.href).then(() => {
+      navigator.clipboard.writeText(shareUrl).then(() => {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }).catch(err => {
@@ -175,6 +195,7 @@ const Portfolio: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [viewHighRes, setViewHighRes] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [modalCopied, setModalCopied] = useState(false);
   const carouselRef = React.useRef<HTMLDivElement>(null);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const modalRef = React.useRef<HTMLDivElement>(null);
@@ -195,8 +216,22 @@ const Portfolio: React.FC = () => {
   useEffect(() => {
     if (selectedProject) {
       setCurrentImageIndex(0);
+      window.history.replaceState(null, '', `#project-${selectedProject.id}`);
+    } else if (!viewHighRes) {
+      window.history.replaceState(null, '', window.location.pathname);
     }
-  }, [selectedProject]);
+  }, [selectedProject, viewHighRes]);
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.startsWith('#project-')) {
+      const projectId = parseInt(hash.replace('#project-', ''), 10);
+      const project = portfolioProjects.find(p => p.id === projectId);
+      if (project) {
+        setSelectedProject(project);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (carouselRef.current) {
@@ -267,6 +302,28 @@ const Portfolio: React.FC = () => {
     }
     if (isRightSwipe) {
       setCurrentImageIndex((prev) => (prev - 1 + projectImages.length) % projectImages.length);
+    }
+  };
+
+  const handleModalShare = (e: React.MouseEvent) => {
+    if (!selectedProject) return;
+    e.stopPropagation();
+    const shareUrl = `${window.location.origin}${window.location.pathname}#project-${selectedProject.id}`;
+    const shareData = {
+      title: selectedProject.title,
+      text: selectedProject.description,
+      url: shareUrl
+    };
+
+    if (navigator.share) {
+      navigator.share(shareData).catch(console.error);
+    } else {
+      navigator.clipboard.writeText(shareUrl).then(() => {
+        setModalCopied(true);
+        setTimeout(() => setModalCopied(false), 2000);
+      }).catch(err => {
+        console.error('Could not copy text: ', err);
+      });
     }
   };
 
@@ -702,9 +759,38 @@ const Portfolio: React.FC = () => {
                               </span>
                           </div>
 
-                          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-bold text-design-black leading-[1.1] sm:leading-[1] mb-4 sm:mb-6 uppercase tracking-tight break-words">
-                              {selectedProject.title}
-                          </h2>
+                          <div className="flex justify-between items-start mb-4 sm:mb-6">
+                              <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-bold text-design-black leading-[1.1] sm:leading-[1] uppercase tracking-tight break-words flex-1">
+                                  {selectedProject.title}
+                              </h2>
+                              <button 
+                                  onClick={handleModalShare}
+                                  className="ml-4 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white rounded-full text-design-black border border-design-black/10 hover:bg-design-black hover:text-white transition-all shadow-sm shrink-0 group/share"
+                                  aria-label={modalCopied ? "Copied to clipboard" : "Share project"}
+                              >
+                                  <AnimatePresence mode="wait">
+                                    {modalCopied ? (
+                                      <motion.div
+                                        key="check"
+                                        initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0, opacity: 0 }}
+                                      >
+                                        <Check size={20} className="text-design-green" />
+                                      </motion.div>
+                                    ) : (
+                                      <motion.div
+                                        key="share"
+                                        initial={{ scale: 0, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        exit={{ scale: 0, opacity: 0 }}
+                                      >
+                                        <Share2 size={20} />
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                              </button>
+                          </div>
                           
                           {/* --- Website Code: Project Description --- */}
                           <div className="mb-10">

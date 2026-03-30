@@ -5,31 +5,38 @@ import Services from './components/Services';
 import Timeline from './components/Timeline';
 import Portfolio from './components/Portfolio';
 import Footer from './components/Footer';
-import SmoothScroll from './components/SmoothScroll';
 import ErrorBoundary from './components/ErrorBoundary';
 import ClickSpark from './components/ClickSpark';
 import Loader from './components/Loader';
-import { motion, useSpring, useMotionValue } from 'framer-motion';
+import { motion } from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const CustomCursor = () => {
-  const cursorX = useMotionValue(-100);
-  const cursorY = useMotionValue(-100);
-  
-  const mouseX = useSpring(cursorX, { stiffness: 1000, damping: 50 });
-  const mouseY = useSpring(cursorY, { stiffness: 1000, damping: 50 });
-  const ringX = useSpring(cursorX, { stiffness: 400, damping: 40 });
-  const ringY = useSpring(cursorY, { stiffness: 400, damping: 40 });
-  
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
   const [isHovering, setIsHovering] = React.useState(false);
 
   useEffect(() => {
     const onMouseMove = (e: MouseEvent) => {
-      cursorX.set(e.clientX);
-      cursorY.set(e.clientY);
+      const { clientX, clientY } = e;
+      
+      // Use direct DOM manipulation for the cursor position to avoid React re-renders
+      if (cursorRef.current) {
+        cursorRef.current.style.transform = `translate3d(${clientX}px, ${clientY}px, 0) translate(-50%, -50%)`;
+      }
+      if (ringRef.current) {
+        // Add a slight delay to the ring for a smooth effect
+        gsap.to(ringRef.current, {
+          x: clientX,
+          y: clientY,
+          duration: 0.15,
+          ease: "power2.out",
+          overwrite: "auto"
+        });
+      }
       
       const target = e.target as HTMLElement;
       const isClickable = !!(target?.closest && target.closest('a, button, input, textarea, .cursor-pointer'));
@@ -42,23 +49,28 @@ const CustomCursor = () => {
 
     window.addEventListener('mousemove', onMouseMove, { passive: true });
     return () => window.removeEventListener('mousemove', onMouseMove);
-  }, [cursorX, cursorY]);
+  }, []);
 
   return (
     <div className="hidden md:block pointer-events-none fixed inset-0 z-cursor">
-      <motion.div 
-        className="fixed top-0 left-0 w-2 h-2 bg-design-blue rounded-full mix-blend-difference"
-        style={{ x: mouseX, y: mouseY, translateX: '-50%', translateY: '-50%' }}
+      <div 
+        ref={cursorRef}
+        className="fixed top-0 left-0 w-2 h-2 bg-design-blue rounded-full mix-blend-difference will-change-transform"
+        style={{ transform: 'translate3d(-100px, -100px, 0) translate(-50%, -50%)' }}
       />
       <motion.div 
-        className="fixed top-0 left-0 rounded-full border border-design-black dark:border-white opacity-40"
+        ref={ringRef}
+        className="fixed top-0 left-0 rounded-full border border-design-black dark:border-white opacity-40 will-change-transform"
         animate={{ 
-          scale: isHovering ? 2 : 1,
+          scale: isHovering ? 1.5 : 1,
           borderWidth: isHovering ? 1 : 2,
-          backgroundColor: isHovering ? 'rgba(52, 78, 65, 0.2)' : 'transparent'
+          backgroundColor: isHovering ? 'rgba(52, 78, 65, 0.2)' : 'transparent',
+          width: isHovering ? 48 : 32,
+          height: isHovering ? 48 : 32,
         }}
+        transition={{ duration: 0.2 }}
         style={{ 
-          x: ringX, y: ringY, width: 32, height: 32, 
+          x: -100, y: -100,
           translateX: '-50%', translateY: '-50%',
         }}
       />
@@ -104,34 +116,32 @@ const App: React.FC = () => {
         >
           <Navbar />
           
-          <SmoothScroll>
-            <div className="min-h-screen bg-design-cream text-design-black dark:text-white font-sans selection:bg-design-blue selection:text-design-black transition-colors duration-300 relative">
-              <div className="grain-overlay"></div>
-              <div className="vignette"></div>
-                    
-              <main className="relative">
-                {/* --- Hero Section --- */}
-                <Hero />
-                
-                {/* --- About / Services Section --- */}
-                <div id="about" className="scroll-mt-20">
-                  <Services />
-                </div>
-    
-                {/* --- Portfolio / Archive Section --- */}
-                <div id="portfolio" className="scroll-mt-20">
-                  <Portfolio />
-                </div>
-    
-                {/* --- Timeline / Chronology Section --- */}
-                <div id="timeline" className="scroll-mt-20">
-                  <Timeline />
-                </div>
-              </main>
+          <div className="min-h-screen bg-design-cream text-design-black dark:text-white font-sans selection:bg-design-blue selection:text-design-black transition-colors duration-300 relative">
+            <div className="grain-overlay"></div>
+            <div className="vignette"></div>
+                  
+            <main className="relative">
+              {/* --- Hero Section --- */}
+              <Hero />
               
-              <Footer />
-            </div>
-          </SmoothScroll>
+              {/* --- About / Services Section --- */}
+              <div id="about" className="scroll-mt-20">
+                <Services />
+              </div>
+  
+              {/* --- Portfolio / Archive Section --- */}
+              <div id="portfolio" className="scroll-mt-20">
+                <Portfolio />
+              </div>
+  
+              {/* --- Timeline / Chronology Section --- */}
+              <div id="timeline" className="scroll-mt-20">
+                <Timeline />
+              </div>
+            </main>
+            
+            <Footer />
+          </div>
         </div>
       </ClickSpark>
     </ErrorBoundary>
