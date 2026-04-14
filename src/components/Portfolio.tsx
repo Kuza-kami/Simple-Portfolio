@@ -22,7 +22,8 @@ const LazyImage: React.FC<{
   className?: string; 
   onClick?: (e: React.MouseEvent) => void;
   priority?: boolean;
-}> = ({ src, alt, className = "", onClick, priority = false }) => {
+  objectFit?: "cover" | "contain";
+}> = ({ src, alt, className = "", onClick, priority = false, objectFit = "cover" }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [isRemoved, setIsRemoved] = useState(false);
@@ -79,7 +80,7 @@ const LazyImage: React.FC<{
         alt={alt}
         onLoad={() => setIsLoaded(true)}
         onClick={onClick}
-        className={`w-full h-full object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+        className={`w-full h-full object-${objectFit} transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
         loading={priority ? "eager" : "lazy"}
         onError={() => setHasError(true)}
         referrerPolicy="no-referrer"
@@ -115,6 +116,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
 
   return (
     <motion.div 
+      layout
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -126,12 +128,12 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
       tabIndex={0}
       className="break-inside-avoid block w-full mb-3 group cursor-default relative focus:outline-none transition-all duration-300"
       initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.9 }}
-      whileHover={{ scale: 1.05 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+      whileHover={{ scale: 1.02 }}
       transition={{ 
         duration: 0.4,
-        ease: "easeOut"
+        ease: [0.16, 1, 0.3, 1]
       }}
     >
       <div className="relative rounded-[2rem] overflow-hidden bg-white border border-design-black/5 group-focus:ring-2 group-focus:ring-design-green transition-shadow duration-300 group-hover:shadow-[0_0_25px_rgba(137,161,120,0.4)]">
@@ -203,6 +205,7 @@ const Portfolio: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [viewHighRes, setViewHighRes] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
   const [modalCopied, setModalCopied] = useState(false);
   const carouselRef = React.useRef<HTMLDivElement>(null);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
@@ -285,11 +288,13 @@ const Portfolio: React.FC = () => {
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setDirection(1);
     setCurrentImageIndex((prev) => (prev + 1) % projectImages.length);
   };
 
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
+    setDirection(-1);
     setCurrentImageIndex((prev) => (prev - 1 + projectImages.length) % projectImages.length);
   };
 
@@ -314,9 +319,11 @@ const Portfolio: React.FC = () => {
     const isRightSwipe = distance < -minSwipeDistance;
     
     if (isLeftSwipe) {
+      setDirection(1);
       setCurrentImageIndex((prev) => (prev + 1) % projectImages.length);
     }
     if (isRightSwipe) {
+      setDirection(-1);
       setCurrentImageIndex((prev) => (prev - 1 + projectImages.length) % projectImages.length);
     }
   };
@@ -345,15 +352,18 @@ const Portfolio: React.FC = () => {
 
   useEffect(() => {
     if (selectedProject || viewHighRes) {
-      document.body.classList.add('overflow-hidden');
-      document.body.classList.remove('overflow-y-auto');
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     } else {
-      document.body.classList.remove('overflow-hidden');
-      document.body.classList.add('overflow-y-auto');
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     }
     return () => {
-      document.body.classList.remove('overflow-hidden');
-      document.body.classList.add('overflow-y-auto');
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     };
   }, [selectedProject, viewHighRes]);
 
@@ -632,7 +642,7 @@ const Portfolio: React.FC = () => {
               <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
+                exit={{ opacity: 0, transition: { duration: 0.3 } }}
                 className="fixed inset-0 bg-black/80 backdrop-blur-md" 
                 onClick={() => {
                   setSelectedProject(null);
@@ -642,7 +652,11 @@ const Portfolio: React.FC = () => {
               <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
+                exit={{ 
+                  scale: 0.95, 
+                  opacity: 0,
+                  transition: { duration: 0.35, ease: [0.77, 0, 0.175, 1] }
+                }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 ref={modalRef}
                 className="relative bg-[#f0f0f0] w-full max-w-[1400px] h-auto max-h-[90dvh] overflow-y-auto shadow-2xl flex flex-col rounded-[22px] text-design-black z-[1010] my-0 md:my-8"
@@ -658,102 +672,131 @@ const Portfolio: React.FC = () => {
                 <div className="flex flex-col md:flex-row h-full">
                   {/* --- Website Code: Modal Left Panel (Main Image) --- */}
                   <motion.div 
-                     initial={{ opacity: 0, x: -50 }}
-                     animate={{ opacity: 1, x: 0 }}
+                     initial={{ opacity: 0 }}
+                     animate={{ opacity: 1 }}
                      transition={{ delay: 0.1, duration: 0.4, ease: "circOut" }}
                      className="w-full md:w-[45%] h-auto min-h-[40vh] md:h-full shrink-0 bg-[#e0e0e0] relative group flex items-center justify-center p-4 sm:p-8 md:p-12 lg:p-16"
                   >
-                      <div className="relative w-full flex items-center justify-center">
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.2 }}
-                                    className="relative w-full flex items-center justify-center"
-                                >
-                                    <div 
-                                        className="relative flex items-center justify-center w-fit h-fit max-w-[calc(100%-5rem)] max-h-[calc(100%-5rem)] md:max-w-[calc(100%-7rem)] md:max-h-[calc(100%-7rem)] min-w-0 min-h-0 group/image"
-                                        onTouchStart={onTouchStart}
-                                        onTouchMove={onTouchMove}
-                                        onTouchEnd={onTouchEndHandler}
+                      <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+                                <AnimatePresence initial={false} custom={direction} mode="wait">
+                                    <motion.div
+                                        key={currentImageIndex}
+                                        custom={direction}
+                                        variants={{
+                                          enter: (direction: number) => ({
+                                            x: direction > 0 ? 100 : -100,
+                                            opacity: 0,
+                                            scale: 0.95
+                                          }),
+                                          center: {
+                                            zIndex: 1,
+                                            x: 0,
+                                            opacity: 1,
+                                            scale: 1
+                                          },
+                                          exit: (direction: number) => ({
+                                            zIndex: 0,
+                                            x: direction < 0 ? 100 : -100,
+                                            opacity: 0,
+                                            scale: 0.95
+                                          })
+                                        }}
+                                        initial="enter"
+                                        animate="center"
+                                        exit="exit"
+                                        transition={{
+                                          x: { type: "spring", stiffness: 300, damping: 30 },
+                                          opacity: { duration: 0.2 }
+                                        }}
+                                        className="relative w-full h-full flex items-center justify-center"
                                     >
-                                        <LazyImage 
-                                            src={projectImages[currentImageIndex]} 
-                                            alt={`${selectedProject.title} - ${selectedProject.category} project featuring ${displayDescription}`} 
-                                            className="w-full h-auto object-cover shadow-2xl cursor-default rounded-lg"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setViewHighRes(getHighResUrl(projectImages[currentImageIndex]));
-                                            }}
-                                            priority={true}
-                                        />
-                                        
-                                        {/* --- Website Code: Main Image Navigation Arrows --- */}
-                                        {projectImages.length > 1 && (
-                                          <>
-                                            <button 
-                                              onClick={prevImage}
-                                              className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-design-black border border-white/30 opacity-50 hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none"
-                                              aria-label="Previous image"
-                                            >
-                                              <ChevronLeft size={20} />
-                                            </button>
-                                            <button 
-                                              onClick={nextImage}
-                                              className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 hidden md:flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md text-design-black border border-white/30 opacity-50 hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none"
-                                              aria-label="Next image"
-                                            >
-                                              <ChevronRight size={20} />
-                                            </button>
-                                          </>
-                                        )}
-
-                                        {/* --- Website Code: Main Image Carousel Dots --- */}
-                                        {projectImages.length > 1 && (
-                                          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-30 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
-                                            {projectImages.map((_, idx) => (
-                                              <button
-                                                key={idx}
+                                        <div 
+                                            className="relative flex items-center justify-center w-fit h-fit max-w-full max-h-full min-w-0 min-h-0 group/image"
+                                            onTouchStart={onTouchStart}
+                                            onTouchMove={onTouchMove}
+                                            onTouchEnd={onTouchEndHandler}
+                                        >
+                                            <LazyImage 
+                                                src={projectImages[currentImageIndex]} 
+                                                alt={`${selectedProject.title} - ${selectedProject.category} project featuring ${displayDescription}`} 
+                                                className="w-full h-auto shadow-2xl cursor-default rounded-lg"
+                                                objectFit="contain"
                                                 onClick={(e) => {
                                                   e.stopPropagation();
-                                                  setCurrentImageIndex(idx);
+                                                  setViewHighRes(getHighResUrl(projectImages[currentImageIndex]));
                                                 }}
-                                                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${
-                                                  idx === currentImageIndex ? 'bg-design-green w-4' : 'bg-white/40 hover:bg-white/60'
-                                                }`}
-                                                aria-label={`Go to image ${idx + 1}`}
-                                              />
-                                            ))}
-                                          </div>
-                                        )}
-                                        
-                                        {/* --- Website Code: Dimensions Indicators --- */}
-                                        <div className="absolute -right-6 md:-right-10 top-4 bottom-4 flex flex-row items-center justify-center z-20 pointer-events-none hidden sm:flex">
-                                            <div className="h-full flex flex-col items-center relative w-2 md:w-3">
-                                              <div className="w-full h-[1px] bg-design-black/50"></div>
-                                              <div className="h-full w-[1px] bg-design-black/30"></div>
-                                              <div className="w-full h-[1px] bg-design-black/50"></div>
-                                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90 bg-[#e0e0e0] px-3 py-1.5 whitespace-nowrap rounded-full border border-design-black/10 shadow-sm">
-                                                <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-design-black/70">
-                                                    H: {heightDisplay}
-                                                </span>
-                                              </div>
+                                                priority={true}
+                                            />
+                                            
+                                            {/* --- Website Code: Dimensions Indicators --- */}
+                                            <div className="absolute -right-6 md:-right-10 top-4 bottom-4 flex flex-row items-center justify-center z-20 pointer-events-none hidden sm:flex">
+                                                <div className="h-full flex flex-col items-center relative w-2 md:w-3">
+                                                  <div className="w-full h-[1px] bg-design-black/50"></div>
+                                                  <div className="h-full w-[1px] bg-design-black/30"></div>
+                                                  <div className="w-full h-[1px] bg-design-black/50"></div>
+                                                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rotate-90 bg-[#e0e0e0] px-3 py-1.5 whitespace-nowrap rounded-full border border-design-black/10 shadow-sm">
+                                                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-design-black/70">
+                                                        H: {heightDisplay}
+                                                    </span>
+                                                  </div>
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        <div className="absolute -bottom-6 md:-bottom-10 left-4 right-4 flex flex-col items-center justify-center z-20 pointer-events-none hidden sm:flex">
-                                            <div className="w-full flex flex-row items-center relative h-2 md:h-3">
-                                              <div className="h-full w-[1px] bg-design-black/50"></div>
-                                              <div className="w-full h-[1px] bg-design-black/30"></div>
-                                              <div className="h-full w-[1px] bg-design-black/50"></div>
-                                              <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e0e0e0] px-3 py-1.5 whitespace-nowrap rounded-full border border-design-black/10 shadow-sm">
-                                                <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-design-black/70">
-                                                    W: {widthDisplay}
-                                                </span>
-                                              </div>
+                                            <div className="absolute -bottom-6 md:-bottom-10 left-4 right-4 flex flex-col items-center justify-center z-20 pointer-events-none hidden sm:flex">
+                                                <div className="w-full flex flex-row items-center relative h-2 md:h-3">
+                                                  <div className="h-full w-[1px] bg-design-black/50"></div>
+                                                  <div className="w-full h-[1px] bg-design-black/30"></div>
+                                                  <div className="h-full w-[1px] bg-design-black/50"></div>
+                                                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#e0e0e0] px-3 py-1.5 whitespace-nowrap rounded-full border border-design-black/10 shadow-sm">
+                                                    <span className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-design-black/70">
+                                                        W: {widthDisplay}
+                                                    </span>
+                                                  </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                </motion.div>
+                                    </motion.div>
+                                </AnimatePresence>
+
+                                {/* --- Website Code: Main Image Navigation Arrows --- */}
+                                {projectImages.length > 1 && (
+                                  <>
+                                    <button 
+                                      onClick={prevImage}
+                                      className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md text-design-black border border-white/30 opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none shadow-lg"
+                                      aria-label="Previous image"
+                                    >
+                                      <ChevronLeft size={24} />
+                                    </button>
+                                    <button 
+                                      onClick={nextImage}
+                                      className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/40 backdrop-blur-md text-design-black border border-white/30 opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:scale-110 z-30 focus:outline-none shadow-lg"
+                                      aria-label="Next image"
+                                    >
+                                      <ChevronRight size={24} />
+                                    </button>
+                                  </>
+                                )}
+
+                                {/* --- Website Code: Main Image Carousel Dots --- */}
+                                {projectImages.length > 1 && (
+                                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-30 bg-black/30 backdrop-blur-md px-4 py-2 rounded-full border border-white/10 shadow-xl">
+                                    {projectImages.map((_, idx) => (
+                                      <button
+                                        key={idx}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDirection(idx > currentImageIndex ? 1 : -1);
+                                          setCurrentImageIndex(idx);
+                                        }}
+                                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                                          idx === currentImageIndex ? 'bg-design-green w-6' : 'bg-white/40 hover:bg-white/60'
+                                        }`}
+                                        aria-label={`Go to image ${idx + 1}`}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
                       </div>
                   </motion.div>
 
@@ -949,7 +992,7 @@ const Portfolio: React.FC = () => {
               <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
+                  exit={{ opacity: 0, transition: { duration: 0.3 } }}
                   ref={highResModalRef}
                   className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-12 cursor-default"
                   onClick={() => setViewHighRes(null)}
@@ -965,7 +1008,11 @@ const Portfolio: React.FC = () => {
                   <motion.div
                       initial={{ scale: 0.9, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.9, opacity: 0 }}
+                      exit={{ 
+                        scale: 0.9, 
+                        opacity: 0,
+                        transition: { duration: 0.35, ease: [0.77, 0, 0.175, 1] }
+                      }}
                       className="max-w-full max-h-full"
                       onClick={(e) => e.stopPropagation()} 
                   >

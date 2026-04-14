@@ -19,11 +19,15 @@ const ProjectFilter: React.FC<ProjectFilterProps> = ({ activeFilter, onFilterCha
             onClick={() => onFilterChange(category)}
             whileTap={{ scale: 0.95 }}
             whileHover={{ scale: 1.05 }}
-            animate={{ scale: isActive ? 1.1 : 1, opacity: isActive ? 1 : 0.7 }}
+            animate={{ 
+              scale: isActive ? 1.05 : 1, 
+              opacity: isActive ? 1 : 0.6,
+              backgroundColor: isActive ? 'transparent' : 'rgba(255, 255, 255, 0.05)'
+            }}
             className={`relative px-4 md:px-6 py-2 md:py-3 rounded-full text-xs md:text-sm font-bold uppercase tracking-widest transition-all duration-300 border focus:outline-none focus:ring-2 focus:ring-design-blue ${
               isActive
-                ? 'text-black border-transparent font-extrabold'
-                : 'bg-transparent text-white border-white/20 hover:border-white/40 hover:bg-white/5 hover:opacity-100'
+                ? 'text-black border-transparent font-extrabold shadow-lg shadow-design-green/20'
+                : 'text-white border-white/10 hover:border-white/30 hover:opacity-100'
             }`}
           >
             {isActive && (

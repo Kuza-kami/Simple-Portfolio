@@ -23,15 +23,18 @@ const Services: React.FC = () => {
 
   useEffect(() => {
     if (showMissingFileModal) {
-      document.body.classList.add('overflow-hidden');
-      document.body.classList.remove('overflow-y-auto');
+      document.documentElement.style.overflow = 'hidden';
+      document.body.style.overflow = 'hidden';
+      document.body.style.touchAction = 'none';
     } else {
-      document.body.classList.remove('overflow-hidden');
-      document.body.classList.add('overflow-y-auto');
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     }
     return () => {
-      document.body.classList.remove('overflow-hidden');
-      document.body.classList.add('overflow-y-auto');
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
+      document.body.style.touchAction = '';
     };
   }, [showMissingFileModal]);
 
@@ -194,19 +197,19 @@ const Services: React.FC = () => {
               {/* Download Buttons */}
               <div>
                   <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-gray-500 mb-3 md:mb-4 block">Resources</span>
-                  <div className="flex flex-row items-center justify-start md:justify-center gap-3 w-full">
+                  <div className="flex flex-row items-center gap-3 w-full">
                       <button 
                         onClick={() => handleDownload('/cv.pdf', 'Simpson_CV.pdf')}
-                        className="flex-1 max-w-[160px] flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-design-black dark:bg-white text-white dark:text-design-black rounded-full font-bold uppercase text-[11px] md:text-xs tracking-wider md:tracking-widest shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-design-black dark:bg-white text-white dark:text-design-black rounded-full font-bold uppercase text-[10px] tracking-wider shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all whitespace-nowrap"
                       >
-                          <FileText size={14} className="md:w-4 md:h-4" />
+                          <FileText size={14} />
                           <span>Download CV</span>
                       </button>
                       <button 
                         onClick={() => handleDownload('/portfolio.pdf', 'Simpson_Portfolio.pdf')}
-                        className="flex-1 max-w-[160px] flex items-center justify-center gap-2 md:gap-3 px-4 md:px-6 py-2 md:py-3 bg-white dark:bg-[#1a1a1a] text-design-black dark:text-white border-2 border-design-black dark:border-white rounded-full font-bold uppercase text-[11px] md:text-xs tracking-wider md:tracking-widest shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all group"
+                        className="flex-1 flex items-center justify-center gap-2 px-3 py-2.5 bg-white dark:bg-[#1a1a1a] text-design-black dark:text-white border-2 border-design-black dark:border-white rounded-full font-bold uppercase text-[10px] tracking-wider shadow-flat dark:shadow-flat-white hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all group whitespace-nowrap"
                       >
-                          <Download size={14} className="md:w-4 md:h-4 group-hover:text-design-blue transition-colors" />
+                          <Download size={14} className="group-hover:text-design-blue transition-colors" />
                           <span>Portfolio PDF</span>
                       </button>
                   </div>
