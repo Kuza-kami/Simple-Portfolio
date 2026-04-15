@@ -198,8 +198,18 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
 
 const Portfolio: React.FC = () => {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [activeFilter, setActiveFilter] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('portfolio_activeFilter') || 'All';
+    }
+    return 'All';
+  });
+  const [searchQuery, setSearchQuery] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('portfolio_searchQuery') || '';
+    }
+    return '';
+  });
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -212,6 +222,14 @@ const Portfolio: React.FC = () => {
   const modalRef = React.useRef<HTMLDivElement>(null);
   const highResModalRef = React.useRef<HTMLDivElement>(null);
   const lastFocusedElementRef = React.useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem('portfolio_activeFilter', activeFilter);
+  }, [activeFilter]);
+
+  useEffect(() => {
+    localStorage.setItem('portfolio_searchQuery', searchQuery);
+  }, [searchQuery]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -537,7 +555,7 @@ const Portfolio: React.FC = () => {
       <div className="max-w-[1920px] 2xl:max-w-[90rem] mx-auto px-4 sm:px-6 relative">
         
         {/* --- Website Code: Header Section --- */}
-        <div ref={headerRef} className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 px-2 border-b border-white/10 pb-12 sticky top-20 z-40 bg-design-black/90 backdrop-blur-sm py-4 transition-all duration-300">
+        <div ref={headerRef} className="flex flex-col md:flex-row justify-between items-end mb-16 gap-8 px-2 border-b border-white/10 pb-12 sticky top-20 z-40 bg-design-black/90 backdrop-blur-sm py-4 transition-all duration-300 will-change-transform">
             <div>
                  <span className="block text-xs font-mono uppercase tracking-widest mb-4 text-design-green">
                    <DecryptedText text="The Archive" speed={30} revealDelay={200} />
@@ -659,7 +677,7 @@ const Portfolio: React.FC = () => {
                 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 ref={modalRef}
-                className="relative bg-[#f0f0f0] w-full max-w-[1400px] h-auto max-h-[90dvh] overflow-y-auto shadow-2xl flex flex-col rounded-[22px] text-design-black z-[1010] my-0 md:my-8"
+                className="relative bg-[#f0f0f0] w-full max-w-[1400px] h-auto max-h-[90vh] max-h-[90dvh] overflow-y-auto shadow-2xl flex flex-col rounded-[22px] text-design-black z-[1010] my-0 md:my-8"
               >
                 <button 
                   onClick={() => setSelectedProject(null)}

@@ -121,7 +121,7 @@ const Navbar: React.FC = () => {
 
   return (
     <>
-      <div ref={navRef} className="fixed top-0 left-0 w-full z-50 flex justify-center pointer-events-none px-3 sm:px-4 md:px-0">
+      <div ref={navRef} className="fixed top-0 left-0 w-full z-50 flex justify-center pointer-events-none px-3 sm:px-4 md:px-0 will-change-transform">
         <nav 
             className={`pointer-events-auto transition-all duration-500 ease-out border mt-3 md:mt-6 ${
                 scrolled 

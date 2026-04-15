@@ -61,7 +61,7 @@ const Hero: React.FC = () => {
         <div className="max-w-7xl 2xl:max-w-[90rem] mx-auto w-full flex-1 relative flex flex-col justify-center">
         <div className="absolute top-0 right-0 w-[40vw] h-[40vw] bg-design-blue/10 blur-[120px] rounded-full pointer-events-none -translate-y-1/2 translate-x-1/2"></div>
         
-        <div className="absolute top-0 left-0 w-full z-30 flex justify-between items-start hero-location opacity-0">
+        <div className="absolute top-0 left-0 w-full z-30 flex justify-between items-start hero-location opacity-0 will-change-transform">
             <div className="hidden md:block mt-32">
                 <span className="block text-[9px] sm:text-[10px] font-mono uppercase tracking-widest mb-2 text-design-blue">Location / Time</span>
                 <span className="block text-xs sm:text-sm font-bold uppercase tracking-wider">South Africa / {saTime}</span>
@@ -81,15 +81,15 @@ const Hero: React.FC = () => {
               <div className="pb-2 md:pb-4">
                  <h1 className="text-center font-display font-bold text-[27vw] sm:text-[17.5vw] md:text-[18.5vw] lg:text-[19vw] xl:text-[15.5rem] 2xl:text-[17.5rem] sm:whitespace-nowrap leading-none sm:leading-tight tracking-tighter text-design-black dark:text-design-white select-none px-6 md:px-0">
                    <span className="block sm:inline pb-2 sm:pb-0">
-                     {"PORT".split('').map((char, i) => <span key={`p-${i}`} className="hero-char inline-block opacity-0">{char}</span>)}
+                     {"PORT".split('').map((char, i) => <span key={`p-${i}`} className="hero-char inline-block opacity-0 will-change-transform">{char}</span>)}
                    </span>
                    <span className="block sm:inline">
-                     {"FOLIO".split('').map((char, i) => <span key={`f-${i}`} className="hero-char inline-block opacity-0">{char}</span>)}
+                     {"FOLIO".split('').map((char, i) => <span key={`f-${i}`} className="hero-char inline-block opacity-0 will-change-transform">{char}</span>)}
                    </span>
                  </h1>
               </div>
 
-              <div className="absolute bottom-2 md:bottom-4 left-1/2 -translate-x-1/2 z-20 hero-badge opacity-0">
+              <div className="absolute bottom-2 md:bottom-4 left-1/2 -translate-x-1/2 z-20 hero-badge opacity-0 will-change-transform">
                    <motion.div 
                      drag
                      dragConstraints={{ left: -100, right: 100, top: -100, bottom: 100 }}

@@ -126,7 +126,7 @@ const Services: React.FC = () => {
       <div className="max-w-7xl 2xl:max-w-[90rem] mx-auto px-4 sm:px-6 md:px-6 relative z-10">
         
         {/* Header */}
-        <div className="flex flex-col items-start mb-12 md:mb-20" data-gsap-service>
+        <div className="flex flex-col items-start mb-12 md:mb-20 will-change-transform" data-gsap-service>
                 <span className="text-[10px] sm:text-xs font-mono uppercase tracking-widest text-design-blue mb-3 md:mb-4 block">About Me</span>
             
             <h2 className="text-[clamp(3rem,_8vw,_8rem)] font-display font-bold text-design-black dark:text-white uppercase leading-none flex flex-col items-start">

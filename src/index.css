@@ -117,11 +117,13 @@
   
   .text-outline-dark {
     -webkit-text-stroke: 1.5px #1E1E1E;
+    text-stroke: 1.5px #1E1E1E;
     color: transparent;
   }
 
   .text-outline-white {
     -webkit-text-stroke: 1px #fff;
+    text-stroke: 1px #fff;
     color: transparent;
   }
 
@@ -133,22 +135,81 @@
 
   .hover-stroke-modak:hover {
     -webkit-text-stroke: 4px #1E1E1E;
+    text-stroke: 4px #1E1E1E;
     paint-order: stroke fill;
   }
   
   .dark .hover-stroke-modak:hover {
     -webkit-text-stroke: 4px #F8F9FA;
+    text-stroke: 4px #F8F9FA;
   }
 
   .perspective-1000 {
+    -webkit-perspective: 1000px;
     perspective: 1000px;
   }
 
   .preserve-3d {
+    -webkit-transform-style: preserve-3d;
     transform-style: preserve-3d;
   }
 
   .backface-hidden {
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
+  }
+
+  /* Global will-change for performance across browsers */
+  .will-change-transform {
+    will-change: transform, opacity;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
+  }
+
+  .backdrop-blur-sm {
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+  }
+  
+  .backdrop-blur-md {
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+  }
+  
+  .backdrop-blur-lg {
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+  }
+
+  .clip-path-circle {
+    -webkit-clip-path: circle(50%);
+    clip-path: circle(50%);
+  }
+
+  .clip-path-none {
+    -webkit-clip-path: none;
+    clip-path: none;
+  }
+
+  /* GPU Acceleration */
+  .gpu {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-perspective: 1000;
+    perspective: 1000;
+  }
+
+  /* Firefox backdrop-filter fallback */
+  @supports not (backdrop-filter: blur(1px)) {
+    .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg {
+      background-color: rgba(255, 255, 255, 0.8) !important;
+    }
+    .dark .backdrop-blur-sm, .dark .backdrop-blur-md, .dark .backdrop-blur-lg {
+      background-color: rgba(26, 26, 26, 0.8) !important;
+    }
   }
 }
