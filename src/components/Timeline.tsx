@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { X, Award, FileText, Calendar, MapPin, ShieldCheck } from 'lucide-react';
+import { X, Award, FileText, Calendar, MapPin, ShieldCheck, Share2, Check } from 'lucide-react';
 import { timelineEvents } from '../data/content';
 import { ParallaxFloat, BlurReveal } from './TextAnimations';
 import BlurText from './BlurText';
@@ -47,6 +47,8 @@ const Timeline: React.FC = () => {
     return () => ctx.revert();
   }, []);
   
+   const [modalCopied, setModalCopied] = useState(false);
+
   // Track scroll progress of the section
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -244,14 +246,45 @@ const Timeline: React.FC = () => {
                   transition={{ type: "spring", damping: 25, stiffness: 200 }}
                   className="relative w-full max-w-6xl bg-white rounded-[22px] md:overflow-hidden flex flex-col md:flex-row shadow-2xl z-[1010] h-auto min-h-screen md:min-h-0 md:max-h-[90vh] my-0 md:my-8"
                >
-                  {/* Close Button */}
-                  <button 
-                      onClick={() => setSelectedEvent(null)}
-                      aria-label="Close modal"
-                      className="absolute top-6 right-6 z-50 w-10 h-10 bg-black/20 text-white backdrop-blur-md rounded-full flex items-center justify-center hover:bg-design-blue hover:text-black transition-colors"
-                  >
-                      <X size={20} />
-                  </button>
+                  {/* Action Buttons */}
+                  <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
+                      <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const shareUrl = `${window.location.origin}${window.location.pathname}#timeline`;
+                            const shareData = { title: selectedEvent.title, text: selectedEvent.desc, url: shareUrl };
+                            if (navigator.share) {
+                              navigator.share(shareData).catch(console.error);
+                            } else {
+                              navigator.clipboard.writeText(shareUrl).then(() => {
+                                setModalCopied(true);
+                                setTimeout(() => setModalCopied(false), 2000);
+                              });
+                            }
+                          }}
+                          aria-label={modalCopied ? "Copied" : "Share timeline event"}
+                          className="w-10 h-10 bg-black/20 text-white backdrop-blur-md rounded-full flex items-center justify-center hover:bg-design-green hover:text-black transition-colors"
+                      >
+                          <AnimatePresence mode="wait">
+                            {modalCopied ? (
+                              <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                                <Check size={16} />
+                              </motion.div>
+                            ) : (
+                              <motion.div key="share" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
+                                <Share2 size={16} />
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                      </button>
+                      <button 
+                          onClick={() => setSelectedEvent(null)}
+                          aria-label="Close modal"
+                          className="w-10 h-10 bg-black/20 text-white backdrop-blur-md rounded-full flex items-center justify-center hover:bg-design-blue hover:text-black transition-colors"
+                      >
+                          <X size={20} />
+                      </button>
+                  </div>
 
                   {/* Left Side: Image & Certificate Visual */}
                   <div className="w-full md:w-1/2 relative h-auto min-h-[30vh] md:h-auto bg-neutral-900 overflow-hidden group">
