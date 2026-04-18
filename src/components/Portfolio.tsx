@@ -519,7 +519,8 @@ const Portfolio: React.FC = () => {
           scrollTrigger: {
             trigger: headerRef.current,
             start: "top 85%",
-            toggleActions: "play none none reverse"
+            end: "top 50%",
+            scrub: 1
           }
         });
       }
@@ -1015,13 +1016,30 @@ const Portfolio: React.FC = () => {
                   className="fixed inset-0 z-[99999] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 md:p-12 cursor-default"
                   onClick={() => setViewHighRes(null)}
               >
-                  <button 
-                      onClick={() => setViewHighRes(null)}
-                      aria-label="Close high resolution image"
-                      className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all z-[2010] focus:outline-none focus:ring-2 focus:ring-white"
-                  >
-                      <X size={24} />
-                  </button>
+                  <div className="absolute top-6 right-6 flex items-center gap-4 z-[2010]">
+                    <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const shareData = { title: 'Amy Simpson - High Resolution Image', url: viewHighRes };
+                          if (navigator.share) {
+                            navigator.share(shareData).catch(console.error);
+                          } else {
+                            navigator.clipboard.writeText(viewHighRes);
+                          }
+                        }}
+                        aria-label="Share high resolution image"
+                        className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all focus:outline-none focus:ring-2 focus:ring-white"
+                    >
+                        <Share2 size={20} />
+                    </button>
+                    <button 
+                        onClick={() => setViewHighRes(null)}
+                        aria-label="Close high resolution image"
+                        className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all focus:outline-none focus:ring-2 focus:ring-white"
+                    >
+                        <X size={24} />
+                    </button>
+                  </div>
 
                   <motion.div
                       initial={{ scale: 0.9, opacity: 0 }}

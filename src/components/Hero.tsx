@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ParallaxFloat, StaggeredText } from './TextAnimations';
 import gsap from 'gsap';
 
-const Hero: React.FC = () => {
+const Hero: React.FC<{ loaderDone?: boolean }> = ({ loaderDone = true }) => {
   const [saTime, setSaTime] = useState('');
   const heroRef = useRef<HTMLDivElement>(null);
 
@@ -26,6 +26,8 @@ const Hero: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!loaderDone) return;
+
     const ctx = gsap.context(() => {
       const tl = gsap.timeline({ delay: 0.2 }); // Wait for navbar to start
 
@@ -51,7 +53,7 @@ const Hero: React.FC = () => {
     }, heroRef);
 
     return () => ctx.revert();
-  }, []);
+  }, [loaderDone]);
 
   return (
     <section 
@@ -72,8 +74,8 @@ const Hero: React.FC = () => {
         <div className="relative z-10 w-full text-center flex flex-col items-center justify-center">
             <motion.div 
               initial={{ height: 0 }}
-              animate={{ height: 32 }}
-              transition={{ duration: 0.5, ease: "circOut", delay: 1.5 }}
+              animate={{ height: loaderDone ? 32 : 0 }}
+              transition={{ duration: 0.5, ease: "circOut", delay: loaderDone ? 1.5 : 0 }}
               className="w-[1px] bg-design-black dark:bg-white/30 mb-4"
             ></motion.div>
 
@@ -114,6 +116,7 @@ const Hero: React.FC = () => {
                   direction="up" 
                   distance={20} 
                   delay={1.4}
+                  play={loaderDone}
                   className="font-mono text-[8px] sm:text-[9px] md:text-xs uppercase tracking-wider sm:tracking-widest text-gray-400 dark:text-gray-500 whitespace-nowrap"
                 />
                 <div className="h-[1px] w-4 sm:w-8 md:w-12 bg-design-black/10 dark:bg-white/10"></div>
@@ -124,8 +127,8 @@ const Hero: React.FC = () => {
 
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 2.0 }}
+        animate={loaderDone ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+        transition={{ duration: 0.4, delay: loaderDone ? 2.0 : 0 }}
         className="relative z-10 flex justify-center items-end mt-8 md:mt-12"
       >
          <button 

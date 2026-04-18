@@ -25,7 +25,8 @@ const Footer: React.FC = () => {
             scrollTrigger: {
               trigger: element,
               start: "top 90%",
-              toggleActions: "play none none reverse"
+              end: "top 60%",
+              scrub: 1
             }
           }
         );
@@ -61,9 +62,19 @@ const Footer: React.FC = () => {
              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest hover:text-design-green transition-all relative group text-white">
                LinkedIn
              </a>
-             <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="text-xs font-bold uppercase tracking-widest hover:text-design-green transition-all relative group text-white">
-               Twitter
-             </a>
+             <button 
+               onClick={() => {
+                 const shareData = { title: 'Amy Simpson - Portfolio', url: window.location.href };
+                 if (navigator.share) {
+                   navigator.share(shareData).catch(console.error);
+                 } else {
+                   navigator.clipboard.writeText(window.location.href);
+                 }
+               }}
+               className="text-xs font-bold uppercase tracking-widest hover:text-design-green transition-all relative group text-white"
+             >
+               Share Site
+             </button>
           </div>
           <p data-gsap-footer className="text-gray-400 text-xs font-mono uppercase tracking-[0.3em]">
             © {new Date().getFullYear()} Simpson Studio &bull; Built with Strength and Precision

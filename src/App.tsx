@@ -122,7 +122,7 @@ const App: React.FC = () => {
                   
             <main className="relative">
               {/* --- Hero Section --- */}
-              <Hero />
+              <Hero loaderDone={loaderDone} />
               
               {/* --- About / Services Section --- */}
               <div id="about" className="scroll-mt-20">

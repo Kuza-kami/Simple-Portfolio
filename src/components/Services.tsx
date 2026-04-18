@@ -57,7 +57,8 @@ const Services: React.FC = () => {
             scrollTrigger: {
               trigger: element,
               start: 'top 85%',
-              toggleActions: "play none none reverse",
+              end: 'top 50%',
+              scrub: 1,
               invalidateOnRefresh: true,
             }
           }
@@ -136,7 +137,7 @@ const Services: React.FC = () => {
                  <motion.div 
                    initial={{ scaleX: 0 }}
                    whileInView={{ scaleX: 1 }}
-                   viewport={{ once: true }}
+                   viewport={{ once: false }}
                    transition={{ duration: 0.5, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
                    className="absolute bottom-2 left-0 w-full h-3 sm:h-4 md:h-4 bg-design-blue -z-10 origin-left opacity-50"
                  ></motion.div>
@@ -157,7 +158,7 @@ const Services: React.FC = () => {
                   <TextHighlight
                     highlightedBits={["Aspiring designer"]}
                     highlightColor="transparent"
-                    highlightBackgroundClassName="bg-design-green/40 dark:bg-design-green/50"
+                    highlightBackgroundClassName="bg-design-green/70 dark:bg-design-green/80"
                     highlightClassName="rounded-[8px] px-2 py-0.5 text-design-black dark:text-white"
                     blurAmount={0}
                     inactiveOpacity={1}
@@ -169,7 +170,7 @@ const Services: React.FC = () => {
                   <TextHighlight
                     highlightedBits={["structure meets instinct", "communication", "honestly", "earn its place", "work already speaks"]}
                     highlightColor="transparent"
-                    highlightBackgroundClassName="bg-design-green/40 dark:bg-design-green/50"
+                    highlightBackgroundClassName="bg-design-green/70 dark:bg-design-green/80"
                     highlightClassName="rounded-[8px] px-2 py-0.5 text-design-black dark:text-white"
                     blurAmount={0}
                     inactiveOpacity={1}

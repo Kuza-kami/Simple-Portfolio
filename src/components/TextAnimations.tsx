@@ -67,7 +67,7 @@ export const SplitText: React.FC<{ text: string; className?: string; delay?: num
     <motion.div
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-5%" }}
+      viewport={{ once: false, margin: "-5%" }}
       className={`flex flex-wrap will-change-transform ${className}`}
     >
       {words.map((word, i) => (
@@ -106,7 +106,7 @@ export const BlurReveal: React.FC<{ children: React.ReactNode; className?: strin
     <motion.div
       initial={shouldReduceMotion ? { opacity: 0 } : { filter: "blur(8px)", opacity: 0, y: 15 }}
       whileInView={shouldReduceMotion ? { opacity: 1 } : { filter: "blur(0px)", opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-10%" }}
+      viewport={{ once: false, margin: "-10%" }}
       transition={{ duration: 0.4, ease: "easeOut", delay }}
       className={`${className} will-change-transform`}
     >
@@ -291,8 +291,8 @@ export const ThreeDTextReveal: React.FC<{ text: string; className?: string; dela
           scrollTrigger: {
             trigger: containerRef.current,
             start: "top 90%",
-            end: "top 60%",
-            toggleActions: "play none none reverse",
+            end: "top 50%",
+            scrub: 1,
             invalidateOnRefresh: true,
           }
         }
@@ -335,7 +335,7 @@ export const BlurHighlight: React.FC<{
             key={i}
             initial={{ filter: "blur(10px)", opacity: 0 }}
             whileInView={{ filter: "blur(0px)", opacity: 1 }}
-            viewport={{ once: true }}
+            viewport={{ once: false }}
             transition={{ 
               duration: 0.8, 
               delay: delay + i * 0.02,
@@ -357,7 +357,8 @@ export const StaggeredText: React.FC<{
   delay?: number;
   direction?: 'up' | 'down' | 'left' | 'right';
   distance?: number;
-}> = ({ text, className = "", delay = 0, direction = 'up', distance = 20 }) => {
+  play?: boolean;
+}> = ({ text, className = "", delay = 0, direction = 'up', distance = 20, play = true }) => {
   const words = text.split(" ");
   
   const getInitial = () => {
@@ -376,11 +377,12 @@ export const StaggeredText: React.FC<{
         <span key={i} className="inline-block overflow-hidden mr-[0.25em] will-change-transform">
           <motion.span
             initial={getInitial()}
-            whileInView={{ x: 0, y: 0, opacity: 1 }}
-            viewport={{ once: true }}
+            animate={play ? { x: 0, y: 0, opacity: 1 } : getInitial()}
+            whileInView={play ? { x: 0, y: 0, opacity: 1 } : undefined}
+            viewport={{ once: false }}
             transition={{
               duration: 0.6,
-              delay: delay + i * 0.05,
+              delay: play ? delay + i * 0.05 : 0,
               ease: [0.16, 1, 0.3, 1]
             }}
             className="inline-block will-change-transform"
@@ -504,7 +506,8 @@ export const TextAnimation: React.FC<{
           scrollTrigger: {
             trigger: containerRef.current,
             start: `top ${100 - (threshold * 100)}%`,
-            toggleActions: exitOnScrollOut ? "play reverse play reverse" : "play none none reverse",
+            end: "top 50%",
+            scrub: 1,
             invalidateOnRefresh: true,
           },
           onComplete: onAnimationComplete
