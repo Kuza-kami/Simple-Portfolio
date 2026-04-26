@@ -1,10 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { X, Award, FileText, Calendar, MapPin, ShieldCheck, Share2, Check } from 'lucide-react';
+import { X, Award, FileText, Calendar, MapPin, ShieldCheck, Share2, Check, Edit2, Trash2 } from 'lucide-react';
+import { TimelineEvent } from '../types';
+import TimelineActionModal from './TimelineActionModal';
 import { timelineEvents } from '../data/content';
 import { ParallaxFloat, BlurReveal } from './TextAnimations';
 import BlurText from './BlurText';
+import DeleteConfirmModal from './DeleteConfirmModal';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -12,8 +15,82 @@ gsap.registerPlugin(ScrollTrigger);
 
 const Timeline: React.FC = () => {
   const containerRef = useRef<HTMLElement>(null);
-  const [selectedEvent, setSelectedEvent] = useState<typeof timelineEvents[0] | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<TimelineEvent | null>(null);
 
+  const [customEvents, setCustomEvents] = useState<TimelineEvent[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('portfolio_timeline_customEvents');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { return []; }
+      }
+    }
+    return [];
+  });
+
+  const [removedEvents, setRemovedEvents] = useState<number[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('portfolio_timeline_removedEvents');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { return []; }
+      }
+    }
+    return [];
+  });
+
+  const [editedEvents, setEditedEvents] = useState<Record<number, TimelineEvent>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('portfolio_timeline_editedEvents');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { return {}; }
+      }
+    }
+    return {};
+  });
+
+  const [showActionModal, setShowActionModal] = useState(false);
+  const [eventToEdit, setEventToEdit] = useState<TimelineEvent | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<number | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('portfolio_timeline_customEvents', JSON.stringify(customEvents));
+    } catch (e) { console.warn('localStorage quota exceeded', e); }
+  }, [customEvents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('portfolio_timeline_removedEvents', JSON.stringify(removedEvents));
+    } catch (e) { console.warn('localStorage quota exceeded', e); }
+  }, [removedEvents]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('portfolio_timeline_editedEvents', JSON.stringify(editedEvents));
+    } catch (e) { console.warn('localStorage quota exceeded', e); }
+  }, [editedEvents]);
+
+  useEffect(() => {
+    const handleAdd = () => setShowActionModal(true);
+    const handleEditOn = () => setEditMode(true);
+    const handleEditOff = () => setEditMode(false);
+    window.addEventListener('secret_add_timeline', handleAdd);
+    window.addEventListener('secret_edit_mode_on', handleEditOn);
+    window.addEventListener('secret_edit_mode_off', handleEditOff);
+    return () => {
+      window.removeEventListener('secret_add_timeline', handleAdd);
+      window.removeEventListener('secret_edit_mode_on', handleEditOn);
+      window.removeEventListener('secret_edit_mode_off', handleEditOff);
+    };
+  }, []);
+
+  const finalEvents = React.useMemo(() => {
+    const baseEvents: TimelineEvent[] = timelineEvents.map((evt, idx) => ({ ...evt, id: idx, isVerified: true, showCertificate: true }));
+    const all = [...customEvents, ...baseEvents];
+    return all
+      .filter(evt => evt.id !== undefined && !removedEvents.includes(evt.id))
+      .map(evt => (evt.id !== undefined && editedEvents[evt.id]) ? { ...evt, ...editedEvents[evt.id] } : evt);
+  }, [customEvents, removedEvents, editedEvents]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -142,12 +219,12 @@ const Timeline: React.FC = () => {
                 </motion.div>
              </div>
         </div>
-        <div className="space-y-8 md:space-y-16 relative z-10 pb-8 md:pb-16">
-           {timelineEvents.map((event, index) => {
+         <div className="space-y-8 md:space-y-16 relative z-10 pb-8 md:pb-16">
+           {finalEvents.map((event, index) => {
                const isEven = index % 2 === 0;
                 return (
                    <div 
-                        key={index}
+                        key={event.id ?? index}
                         data-gsap-timeline
                         className={`relative flex flex-col md:flex-row ${isEven ? 'md:flex-row-reverse' : ''} items-center group cursor-pointer will-change-transform`}
                         onClick={() => setSelectedEvent(event)}
@@ -162,6 +239,33 @@ const Timeline: React.FC = () => {
                             <div className={`inline-block border border-design-black rounded-full px-3 md:px-4 py-1 md:py-1.5 text-[9px] md:text-[10px] font-bold uppercase tracking-widest bg-white mb-2 md:mb-4 shadow-sm group-hover:bg-design-blue group-hover:text-black transition-colors ${!isEven && 'md:ml-auto'}`}>
                                 {event.year}
                             </div>
+                            
+                            {editMode && (
+                              <div className={`flex items-center gap-2 mb-2 ${!isEven && 'md:justify-end'}`}>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEventToEdit(event);
+                                    setShowActionModal(true);
+                                  }}
+                                  className="p-1.5 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors pointer-events-auto"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (event.id !== undefined) {
+                                      setEventToDelete(event.id);
+                                    }
+                                  }}
+                                  className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600 transition-colors pointer-events-auto"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            )}
+
                             <BlurText 
                                 text={event.title}
                                 animateBy="words"
@@ -299,6 +403,7 @@ const Timeline: React.FC = () => {
                       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-90" />
                       
                       {/* Certificate Badge Overlay */}
+                      {selectedEvent.showCertificate && (
                       <div className="absolute bottom-6 left-6 md:bottom-12 md:left-12 max-w-xs">
                           <div className="flex items-center gap-3 mb-2 md:mb-4">
                               <div className="w-10 h-10 md:w-12 md:h-12 bg-design-green rounded-full flex items-center justify-center text-black shadow-[0_0_20px_rgba(137,161,120,0.4)]">
@@ -309,12 +414,13 @@ const Timeline: React.FC = () => {
                               </div>
                           </div>
                           <h3 className="text-2xl md:text-3xl font-display font-bold uppercase text-white mb-2 leading-none">
-                              Certificate of <br/>Excellence
+                              {selectedEvent.certTitle || 'Certificate of Excellence'}
                           </h3>
                           <p className="text-white/60 text-[10px] md:text-xs leading-relaxed border-l-2 border-design-green pl-3 hidden sm:block">
-                              This document certifies the successful completion and recognition of the aforementioned milestone in the Simpson Archives.
+                              {selectedEvent.certInfo || 'This document certifies the successful completion and recognition of the aforementioned milestone in the Simpson Archives.'}
                           </p>
                       </div>
+                      )}
                   </div>
 
                    {/* Right Side: Details & Archive Data */}
@@ -355,7 +461,7 @@ const Timeline: React.FC = () => {
                                       </div>
                                       <div>
                                           <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Date of Completion</span>
-                                          <span className="font-mono text-sm">{(selectedEvent as any).completionDate}</span>
+                                          <span className="font-mono text-sm">{selectedEvent.completionDate || "N/A"}</span>
                                       </div>
                                   </div>
 
@@ -365,7 +471,7 @@ const Timeline: React.FC = () => {
                                       </div>
                                       <div>
                                           <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Origin</span>
-                                          <span className="font-mono text-sm">New York, NY / Global</span>
+                                          <span className="font-mono text-sm">{selectedEvent.origin || "Global"}</span>
                                       </div>
                                   </div>
 
@@ -375,7 +481,9 @@ const Timeline: React.FC = () => {
                                       </div>
                                       <div>
                                           <span className="block text-[10px] font-mono uppercase text-gray-400 mb-1">Verification</span>
-                                          <span className="font-mono text-sm text-design-green">Authenticated</span>
+                                          <span className={`font-mono text-sm ${selectedEvent.isVerified ? 'text-design-green' : 'text-gray-500'}`}>
+                                            {selectedEvent.isVerified ? 'Authenticated' : 'Not Verified'}
+                                          </span>
                                       </div>
                                   </div>
                               </div>
@@ -395,6 +503,31 @@ const Timeline: React.FC = () => {
         </AnimatePresence>,
         document.body
       )}
+      {/* Action Modal */}
+      <TimelineActionModal 
+        isOpen={showActionModal}
+        onClose={() => {
+          setShowActionModal(false);
+          setEventToEdit(null);
+        }}
+        eventToEdit={eventToEdit}
+        onSubmit={(evt) => {
+          if (eventToEdit) {
+            setEditedEvents(prev => ({ ...prev, [evt.id!]: evt }));
+          } else {
+            setCustomEvents(prev => [{ ...evt, id: Date.now() }, ...prev]);
+          }
+        }}
+      />
+      <DeleteConfirmModal
+        isOpen={eventToDelete !== null}
+        onClose={() => setEventToDelete(null)}
+        onConfirm={() => {
+          if (eventToDelete !== null) {
+            setRemovedEvents(prev => [...prev, eventToDelete]);
+          }
+        }}
+      />
     </section>
   );
 };

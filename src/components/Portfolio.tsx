@@ -1,8 +1,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Project } from '../types';
-import { ArrowUpRight, X, Share2, ChevronLeft, ChevronRight, Search, Check, ImageOff } from 'lucide-react';
+import { ArrowUpRight, X, Share2, ChevronLeft, ChevronRight, Search, Check, ImageOff, Trash2, Edit2 } from 'lucide-react';
 import ProjectFilter from './ProjectFilter';
+import ProjectUploadModal from './ProjectUploadModal';
+import ProjectEditModal from './ProjectEditModal';
+import DeleteConfirmModal from './DeleteConfirmModal';
 import { motion, AnimatePresence } from 'framer-motion';
 import { portfolioProjects } from '../data/content';
 import { getHighResUrl } from '../utils/imageUtils';
@@ -89,7 +92,13 @@ const LazyImage: React.FC<{
   );
 };
 
-const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ project, onClick }) => {
+const ProjectCard: React.FC<{ 
+  project: Project; 
+  onClick: () => void;
+  editMode?: boolean;
+  onEdit?: (e: React.MouseEvent, project: Project) => void;
+  onRemove?: (e: React.MouseEvent, id: number) => void;
+}> = ({ project, onClick, editMode, onEdit, onRemove }) => {
   const [copied, setCopied] = useState(false);
 
   const handleShare = (e: React.MouseEvent) => {
@@ -151,15 +160,34 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
                       Examine
                   </span>
               </div>
-              <div className="flex justify-between items-center transform translate-y-2 group-hover:translate-y-0">
+              <div className="flex justify-between items-center transform translate-y-2 group-hover:translate-y-0 relative z-10">
                    <div className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30">
                        <ArrowUpRight size={18} />
                    </div>
-                   <button 
-                       onClick={handleShare}
-                       className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white hover:text-black transition-colors relative"
-                       aria-label={copied ? "Copied to clipboard" : "Share project"}
-                   >
+                   <div className="flex items-center gap-2">
+                       {editMode && onEdit && onRemove && (
+                         <>
+                           <button 
+                               onClick={(e) => onEdit(e, project)}
+                               className="w-10 h-10 flex items-center justify-center bg-blue-500/80 backdrop-blur-md rounded-full text-white hover:bg-blue-600 transition-colors pointer-events-auto"
+                               aria-label="Edit project"
+                           >
+                               <Edit2 size={16} />
+                           </button>
+                           <button 
+                               onClick={(e) => onRemove(e, project.id)}
+                               className="w-10 h-10 flex items-center justify-center bg-red-500/80 backdrop-blur-md rounded-full text-white hover:bg-red-600 transition-colors pointer-events-auto"
+                               aria-label="Remove project"
+                           >
+                               <Trash2 size={16} />
+                           </button>
+                         </>
+                       )}
+                       <button 
+                           onClick={handleShare}
+                           className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white hover:text-black transition-colors relative pointer-events-auto"
+                           aria-label={copied ? "Copied to clipboard" : "Share project"}
+                       >
                        <AnimatePresence mode="wait">
                          {copied ? (
                            <motion.div
@@ -182,6 +210,7 @@ const ProjectCard: React.FC<{ project: Project; onClick: () => void }> = ({ proj
                          )}
                        </AnimatePresence>
                    </button>
+                   </div>
               </div>
           </div>
       </div>
@@ -223,12 +252,96 @@ const Portfolio: React.FC = () => {
   const highResModalRef = React.useRef<HTMLDivElement>(null);
   const lastFocusedElementRef = React.useRef<HTMLElement | null>(null);
 
+  const [customProjects, setCustomProjects] = useState<Project[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('portfolio_customProjects');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { return []; }
+      }
+    }
+    return [];
+  });
+  
+  const [removedProjects, setRemovedProjects] = useState<number[]>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('portfolio_removedProjects');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { return []; }
+      }
+    }
+    return [];
+  });
+
+  const [editedCustomProjects, setEditedCustomProjects] = useState<Record<number, Project>>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('portfolio_editedCustomProjects');
+      if (saved) {
+        try { return JSON.parse(saved); } catch (e) { return {}; }
+      }
+    }
+    return {};
+  });
+
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<number | null>(null);
+
   useEffect(() => {
-    localStorage.setItem('portfolio_activeFilter', activeFilter);
+    try {
+      localStorage.setItem('portfolio_customProjects', JSON.stringify(customProjects));
+    } catch (e) { console.warn('localStorage quota exceeded', e); }
+  }, [customProjects]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('portfolio_removedProjects', JSON.stringify(removedProjects));
+    } catch (e) { console.warn('localStorage quota exceeded', e); }
+  }, [removedProjects]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('portfolio_editedCustomProjects', JSON.stringify(editedCustomProjects));
+    } catch (e) { console.warn('localStorage quota exceeded', e); }
+  }, [editedCustomProjects]);
+
+  useEffect(() => {
+    const handleEditOn = () => setEditMode(true);
+    const handleEditOff = () => setEditMode(false);
+    window.addEventListener('secret_edit_mode_on', handleEditOn);
+    window.addEventListener('secret_edit_mode_off', handleEditOff);
+    return () => {
+      window.removeEventListener('secret_edit_mode_on', handleEditOn);
+      window.removeEventListener('secret_edit_mode_off', handleEditOff);
+    };
+  }, []);
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value.toUpperCase() === 'IWANTTOADDPROJECT') {
+      setShowUploadModal(true);
+      setSearchQuery('');
+    } else if (value.toUpperCase() === 'IWANTTOREMOVEPROJECT' || value.toUpperCase() === 'IWANTTOREMOVETIMELINE') {
+      window.dispatchEvent(new CustomEvent('secret_edit_mode_on'));
+      setSearchQuery('');
+    } else if (value.toUpperCase() === 'IWANTTOADDTIMELINE') {
+      window.dispatchEvent(new CustomEvent('secret_add_timeline'));
+      setSearchQuery('');
+    } else {
+      setSearchQuery(value);
+    }
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('portfolio_activeFilter', activeFilter);
+    } catch (e) { console.warn('localStorage quota exceeded', e); }
   }, [activeFilter]);
 
   useEffect(() => {
-    localStorage.setItem('portfolio_searchQuery', searchQuery);
+    try {
+      localStorage.setItem('portfolio_searchQuery', searchQuery);
+    } catch (e) { console.warn('localStorage quota exceeded', e); }
   }, [searchQuery]);
 
   useEffect(() => {
@@ -471,8 +584,11 @@ const Portfolio: React.FC = () => {
   }, [selectedProject, viewHighRes]);
 
   const allProjects = useMemo(() => {
-    return showAll ? [...portfolioProjects, ...moreProjects] : portfolioProjects;
-  }, [showAll]);
+    const baseProjects = showAll ? [...customProjects, ...portfolioProjects, ...moreProjects] : [...customProjects, ...portfolioProjects];
+    return baseProjects
+      .filter(p => !removedProjects.includes(p.id))
+      .map(p => editedCustomProjects[p.id] ? { ...p, ...editedCustomProjects[p.id] } : p);
+  }, [showAll, customProjects, removedProjects, editedCustomProjects]);
 
   const filteredProjects = useMemo(() => {
     let filtered = activeFilter === 'All' 
@@ -579,7 +695,7 @@ const Portfolio: React.FC = () => {
                     type="text"
                     placeholder="Title, description, or tech..."
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={handleSearchChange}
                     className="bg-white/5 border border-white/10 rounded-full pl-24 pr-12 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-design-green focus:bg-white/10 transition-all w-full"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -609,6 +725,15 @@ const Portfolio: React.FC = () => {
                   key={project.id} 
                   project={project} 
                   onClick={() => setSelectedProject(project)} 
+                  editMode={editMode}
+                  onEdit={(e, p) => {
+                    e.stopPropagation();
+                    setProjectToEdit(p);
+                  }}
+                  onRemove={(e, id) => {
+                    e.stopPropagation();
+                    setProjectToDelete(id);
+                  }}
                 />
               ))
             ) : (
@@ -1064,6 +1189,38 @@ const Portfolio: React.FC = () => {
         </AnimatePresence>,
         document.body
       )}
+
+      {/* Secret Project Upload Modal */}
+      <ProjectUploadModal 
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onSubmit={(newProjects) => {
+          setCustomProjects(prev => [
+            ...newProjects.map((p, idx) => ({ ...p, id: Date.now() + idx })),
+            ...prev
+          ]);
+        }}
+      />
+      <ProjectEditModal
+        isOpen={!!projectToEdit}
+        onClose={() => setProjectToEdit(null)}
+        project={projectToEdit}
+        onSubmit={(updatedProject) => {
+          setEditedCustomProjects(prev => ({
+            ...prev,
+            [updatedProject.id]: updatedProject
+          }));
+        }}
+      />
+      <DeleteConfirmModal
+        isOpen={projectToDelete !== null}
+        onClose={() => setProjectToDelete(null)}
+        onConfirm={() => {
+          if (projectToDelete !== null) {
+            setRemovedProjects(prev => [...prev, projectToDelete]);
+          }
+        }}
+      />
     </section>
   );
 };

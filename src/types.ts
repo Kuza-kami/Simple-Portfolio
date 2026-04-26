@@ -1,3 +1,18 @@
+export interface TimelineEvent {
+  id?: number;
+  year: string;
+  completionDate: string;
+  title: string;
+  desc: string;
+  extendedDesc: string;
+  image: string;
+  origin?: string;
+  isVerified?: boolean;
+  showCertificate?: boolean;
+  certTitle?: string;
+  certInfo?: string;
+}
+
 export interface ProjectProcessStep {
   image: string;
   description: string;

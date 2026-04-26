@@ -14,6 +14,41 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
+// --- Custom Components ---
+
+const EditModeController = () => {
+  const [editMode, setEditMode] = useState(false);
+  
+  useEffect(() => {
+    const handleOn = () => setEditMode(true);
+    const handleOff = () => setEditMode(false);
+    
+    window.addEventListener('secret_edit_mode_on', handleOn);
+    window.addEventListener('secret_edit_mode_off', handleOff);
+    
+    // Check if any component is currently in edit mode on mount
+    return () => {
+      window.removeEventListener('secret_edit_mode_on', handleOn);
+      window.removeEventListener('secret_edit_mode_off', handleOff);
+    };
+  }, []);
+
+  if (!editMode) return null;
+
+  return (
+    <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[999999] pointer-events-auto">
+      <button
+        onClick={() => {
+          window.dispatchEvent(new CustomEvent('secret_edit_mode_off'));
+        }}
+        className="px-8 py-4 bg-design-green text-black font-bold font-mono text-sm uppercase tracking-widest rounded-full shadow-[0_10px_40px_rgba(137,161,120,0.6)] hover:bg-white hover:scale-105 transition-all duration-300 transform"
+      >
+        Save Changes
+      </button>
+    </div>
+  );
+};
+
 const CustomCursor = () => {
   const cursorRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
@@ -143,6 +178,7 @@ const App: React.FC = () => {
             <Footer />
           </div>
         </div>
+        <EditModeController />
       </ClickSpark>
     </ErrorBoundary>
   );
