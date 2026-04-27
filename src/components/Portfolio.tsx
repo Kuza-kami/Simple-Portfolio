@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Project } from '../types';
-import { ArrowUpRight, X, Share2, ChevronLeft, ChevronRight, Search, Check, ImageOff, Trash2, Edit2 } from 'lucide-react';
+import { ArrowUpRight, X, ChevronLeft, ChevronRight, Search, ImageOff, Trash2, Edit2 } from 'lucide-react';
 import ProjectFilter from './ProjectFilter';
 import ProjectUploadModal from './ProjectUploadModal';
 import ProjectEditModal from './ProjectEditModal';
@@ -99,29 +99,6 @@ const ProjectCard: React.FC<{
   onEdit?: (e: React.MouseEvent, project: Project) => void;
   onRemove?: (e: React.MouseEvent, id: number) => void;
 }> = ({ project, onClick, editMode, onEdit, onRemove }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleShare = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const shareUrl = `${window.location.origin}${window.location.pathname}#project-${project.id}`;
-    const shareData = {
-      title: project.title,
-      text: project.description,
-      url: shareUrl
-    };
-
-    if (navigator.share) {
-      navigator.share(shareData).catch(console.error);
-    } else {
-      // Fallback to clipboard
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }).catch(err => {
-        console.error('Could not copy text: ', err);
-      });
-    }
-  };
 
   return (
     <motion.div 
@@ -183,33 +160,6 @@ const ProjectCard: React.FC<{
                            </button>
                          </>
                        )}
-                       <button 
-                           onClick={handleShare}
-                           className="w-10 h-10 flex items-center justify-center bg-white/20 backdrop-blur-md rounded-full text-white border border-white/30 hover:bg-white hover:text-black transition-colors relative pointer-events-auto"
-                           aria-label={copied ? "Copied to clipboard" : "Share project"}
-                       >
-                       <AnimatePresence mode="wait">
-                         {copied ? (
-                           <motion.div
-                             key="check"
-                             initial={{ scale: 0, opacity: 0 }}
-                             animate={{ scale: 1, opacity: 1 }}
-                             exit={{ scale: 0, opacity: 0 }}
-                           >
-                             <Check size={16} className="text-design-green" />
-                           </motion.div>
-                         ) : (
-                           <motion.div
-                             key="share"
-                             initial={{ scale: 0, opacity: 0 }}
-                             animate={{ scale: 1, opacity: 1 }}
-                             exit={{ scale: 0, opacity: 0 }}
-                           >
-                             <Share2 size={16} />
-                           </motion.div>
-                         )}
-                       </AnimatePresence>
-                   </button>
                    </div>
               </div>
           </div>
@@ -245,7 +195,6 @@ const Portfolio: React.FC = () => {
   const [viewHighRes, setViewHighRes] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [direction, setDirection] = useState(0);
-  const [modalCopied, setModalCopied] = useState(false);
   const carouselRef = React.useRef<HTMLDivElement>(null);
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const modalRef = React.useRef<HTMLDivElement>(null);
@@ -379,6 +328,7 @@ const Portfolio: React.FC = () => {
       const project = portfolioProjects.find(p => p.id === projectId);
       if (project) {
         setSelectedProject(project);
+        setCurrentImageIndex(0);
       }
     }
   }, []);
@@ -401,18 +351,28 @@ const Portfolio: React.FC = () => {
 
   const projectImages = useMemo(() => {
     if (!selectedProject) return [];
+    
+    const images: string[] = [selectedProject.image];
+    
     if (selectedProject.process && selectedProject.process.length > 0) {
-      return selectedProject.process.map(p => p.image);
+      images.push(...selectedProject.process.map(p => p.image));
+    } else if (selectedProject.images && selectedProject.images.length > 0) {
+      images.push(...selectedProject.images);
     }
-    return selectedProject.images && selectedProject.images.length > 0 
-      ? selectedProject.images 
-      : [selectedProject.image];
+    
+    // Remove duplicates if the main image is also in process/images
+    return Array.from(new Set(images));
   }, [selectedProject]);
 
   const currentProcessStep = useMemo(() => {
     if (!selectedProject) return null;
-    if (selectedProject.process && selectedProject.process.length > currentImageIndex) {
-      return selectedProject.process[currentImageIndex];
+    
+    // Index 0 is the main image (usually doesn't have a specific process step desc unless handled)
+    if (currentImageIndex === 0) return null;
+    
+    const processIndex = currentImageIndex - 1;
+    if (selectedProject.process && selectedProject.process.length > processIndex) {
+      return selectedProject.process[processIndex];
     }
     return null;
   }, [selectedProject, currentImageIndex]);
@@ -456,28 +416,6 @@ const Portfolio: React.FC = () => {
     if (isRightSwipe) {
       setDirection(-1);
       setCurrentImageIndex((prev) => (prev - 1 + projectImages.length) % projectImages.length);
-    }
-  };
-
-  const handleModalShare = (e: React.MouseEvent) => {
-    if (!selectedProject) return;
-    e.stopPropagation();
-    const shareUrl = `${window.location.origin}${window.location.pathname}#project-${selectedProject.id}`;
-    const shareData = {
-      title: selectedProject.title,
-      text: selectedProject.description,
-      url: shareUrl
-    };
-
-    if (navigator.share) {
-      navigator.share(shareData).catch(console.error);
-    } else {
-      navigator.clipboard.writeText(shareUrl).then(() => {
-        setModalCopied(true);
-        setTimeout(() => setModalCopied(false), 2000);
-      }).catch(err => {
-        console.error('Could not copy text: ', err);
-      });
     }
   };
 
@@ -665,7 +603,7 @@ const Portfolio: React.FC = () => {
 
   const displayDate = currentProcessStep?.date || selectedProject?.year || 'Unknown';
   const displayMedium = currentProcessStep?.medium || details.media || selectedProject?.medium || selectedProject?.category || 'Unknown';
-  const displayDescription = currentProcessStep?.description || (currentImageIndex === 0 ? 'First sketch' : `Process Image ${currentImageIndex + 1}`);
+  const displayDescription = currentProcessStep?.description || (currentImageIndex === 0 ? 'Main Artwork' : `Process Image ${currentImageIndex}`);
 
   return (
     <section id="portfolio" className="py-20 md:py-32 bg-design-black relative text-white transition-colors duration-500 rounded-2xl border border-white/10">
@@ -724,7 +662,10 @@ const Portfolio: React.FC = () => {
                 <ProjectCard 
                   key={project.id} 
                   project={project} 
-                  onClick={() => setSelectedProject(project)} 
+                  onClick={() => {
+                    setSelectedProject(project);
+                    setCurrentImageIndex(0);
+                  }} 
                   editMode={editMode}
                   onEdit={(e, p) => {
                     e.stopPropagation();
@@ -966,33 +907,6 @@ const Portfolio: React.FC = () => {
                               <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-display font-bold text-design-black leading-[1.1] sm:leading-[1] uppercase tracking-tight break-words flex-1">
                                   {selectedProject.title}
                               </h2>
-                              <button 
-                                  onClick={handleModalShare}
-                                  className="ml-4 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-white rounded-full text-design-black border border-design-black/10 hover:bg-design-black hover:text-white transition-all shadow-sm shrink-0 group/share"
-                                  aria-label={modalCopied ? "Copied to clipboard" : "Share project"}
-                              >
-                                  <AnimatePresence mode="wait">
-                                    {modalCopied ? (
-                                      <motion.div
-                                        key="check"
-                                        initial={{ scale: 0, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        exit={{ scale: 0, opacity: 0 }}
-                                      >
-                                        <Check size={20} className="text-design-green" />
-                                      </motion.div>
-                                    ) : (
-                                      <motion.div
-                                        key="share"
-                                        initial={{ scale: 0, opacity: 0 }}
-                                        animate={{ scale: 1, opacity: 1 }}
-                                        exit={{ scale: 0, opacity: 0 }}
-                                      >
-                                        <Share2 size={20} />
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
-                              </button>
                           </div>
                           
                           {/* --- Website Code: Project Description --- */}
@@ -1142,21 +1056,6 @@ const Portfolio: React.FC = () => {
                   onClick={() => setViewHighRes(null)}
               >
                   <div className="absolute top-6 right-6 flex items-center gap-4 z-[2010]">
-                    <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const shareData = { title: 'Amy Simpson - High Resolution Image', url: viewHighRes };
-                          if (navigator.share) {
-                            navigator.share(shareData).catch(console.error);
-                          } else {
-                            navigator.clipboard.writeText(viewHighRes);
-                          }
-                        }}
-                        aria-label="Share high resolution image"
-                        className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white hover:text-black transition-all focus:outline-none focus:ring-2 focus:ring-white"
-                    >
-                        <Share2 size={20} />
-                    </button>
                     <button 
                         onClick={() => setViewHighRes(null)}
                         aria-label="Close high resolution image"

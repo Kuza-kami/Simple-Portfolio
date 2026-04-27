@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { X, Award, FileText, Calendar, MapPin, ShieldCheck, Share2, Check, Edit2, Trash2 } from 'lucide-react';
+import { X, Award, FileText, Calendar, MapPin, ShieldCheck, Edit2, Trash2 } from 'lucide-react';
 import { TimelineEvent } from '../types';
 import TimelineActionModal from './TimelineActionModal';
 import { timelineEvents } from '../data/content';
@@ -124,9 +124,7 @@ const Timeline: React.FC = () => {
     return () => ctx.revert();
   }, []);
   
-   const [modalCopied, setModalCopied] = useState(false);
-
-  // Track scroll progress of the section
+   // Track scroll progress of the section
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start 75%", "end 75%"]
@@ -139,7 +137,6 @@ const Timeline: React.FC = () => {
       restDelta: 0.001
   });
 
-  // --- ADD THESE NEW TRANSFORMS ---
   // Phase 1 (0 to 0.9): Line and Needle move to 96.5% and STOP.
   const threadScale = useTransform(scaleY, [0, 0.9, 1], [0, 0.965, 0.965]);
   const needleTop = useTransform(scaleY, [0, 0.9, 1], ["0%", "96.5%", "96.5%"]);
@@ -148,7 +145,7 @@ const Timeline: React.FC = () => {
   const pillFillScale = useTransform(scaleY, [0.9, 0.98], [0, 1], { clamp: true });
   const pillTextColor = useTransform(scaleY, [0.9, 0.95], ['#1a1a1a', '#000000'], { clamp: true });
 
-  // Lock body scroll when modal is open
+   // Lock body scroll when modal is open
   useEffect(() => {
     if (selectedEvent) {
       document.body.classList.add('overflow-hidden');
@@ -352,35 +349,6 @@ const Timeline: React.FC = () => {
                >
                   {/* Action Buttons */}
                   <div className="absolute top-6 right-6 z-50 flex items-center gap-3">
-                      <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const shareUrl = `${window.location.origin}${window.location.pathname}#timeline`;
-                            const shareData = { title: selectedEvent.title, text: selectedEvent.desc, url: shareUrl };
-                            if (navigator.share) {
-                              navigator.share(shareData).catch(console.error);
-                            } else {
-                              navigator.clipboard.writeText(shareUrl).then(() => {
-                                setModalCopied(true);
-                                setTimeout(() => setModalCopied(false), 2000);
-                              });
-                            }
-                          }}
-                          aria-label={modalCopied ? "Copied" : "Share timeline event"}
-                          className="w-10 h-10 bg-black/20 text-white backdrop-blur-md rounded-full flex items-center justify-center hover:bg-design-green hover:text-black transition-colors"
-                      >
-                          <AnimatePresence mode="wait">
-                            {modalCopied ? (
-                              <motion.div key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                                <Check size={16} />
-                              </motion.div>
-                            ) : (
-                              <motion.div key="share" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                                <Share2 size={16} />
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                      </button>
                       <button 
                           onClick={() => setSelectedEvent(null)}
                           aria-label="Close modal"
