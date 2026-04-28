@@ -1,5 +1,6 @@
 export interface TimelineEvent {
-  id?: number;
+  id?: number | string;
+  userId?: string;
   year: string;
   completionDate: string;
   title: string;
@@ -11,6 +12,8 @@ export interface TimelineEvent {
   showCertificate?: boolean;
   certTitle?: string;
   certInfo?: string;
+  createdAt?: string | any;
+  updatedAt?: string | any;
 }
 
 export interface ProjectProcessStep {
@@ -22,7 +25,8 @@ export interface ProjectProcessStep {
 }
 
 export interface Project {
-  id: number;
+  id: number | string;
+  userId?: string;
   title: string;
   category: string;
   year: string;
@@ -37,4 +41,6 @@ export interface Project {
   technologies?: string[];
   size?: string;
   medium?: string;
+  createdAt?: string | any;
+  updatedAt?: string | any;
 }

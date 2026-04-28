@@ -2,6 +2,7 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { AuthProvider } from './AuthContext';
 
 // Global error handler for unhandled promise rejections
 window.addEventListener('unhandledrejection', (event) => {
@@ -10,6 +11,8 @@ window.addEventListener('unhandledrejection', (event) => {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <AuthProvider>
+      <App />
+    </AuthProvider>
   </StrictMode>,
 );

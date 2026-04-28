@@ -1,18 +1,22 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Mail, Instagram, Download, FileText, X } from 'lucide-react';
+import { Mail, Instagram, Download, FileText, X, LogOut, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RotatingWords, SplitText, ParallaxFloat, ThreeDTextReveal } from './TextAnimations';
 import { TextHighlight } from './TextHighlight';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useAuth } from '../AuthContext';
+import AdminManagerModal from './AdminManagerModal';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const Services: React.FC = () => {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [showMissingFileModal, setShowMissingFileModal] = useState(false);
+  const [showAdminModal, setShowAdminModal] = useState(false);
   const [missingFileName, setMissingFileName] = useState("");
+  const { user, isAdmin, logOut } = useAuth();
 
   const handleDownload = (_url: string, filename: string) => {
     // In a real app, we'd check if the file exists. 
@@ -233,6 +237,30 @@ const Services: React.FC = () => {
                           </div>
                           <span className="font-mono text-xs sm:text-sm text-gray-600 dark:text-gray-400 group-hover:text-design-black dark:group-hover:text-white transition-colors">@amysimpson.design</span>
                       </a>
+
+                      {user && (
+                        <>
+                          <button onClick={logOut} className="flex items-center gap-3 md:gap-4 group w-full text-left">
+                              <div className="w-9 md:w-10 h-9 md:h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center group-hover:bg-design-blue group-hover:text-design-black transition-colors border border-transparent group-hover:border-design-black">
+                                  <LogOut size={16} className="md:w-[18px] md:h-[18px]" />
+                              </div>
+                              <span className="font-mono text-xs sm:text-sm text-gray-600 dark:text-gray-400 group-hover:text-design-black dark:group-hover:text-white transition-colors">
+                                  Admin Logout
+                              </span>
+                          </button>
+
+                          {isAdmin && (
+                              <button onClick={() => setShowAdminModal(true)} className="flex items-center gap-3 md:gap-4 group w-full text-left">
+                                  <div className="w-9 md:w-10 h-9 md:h-10 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center group-hover:bg-design-blue group-hover:text-design-black transition-colors border border-transparent group-hover:border-design-black">
+                                      <Shield size={16} className="md:w-[18px] md:h-[18px]" />
+                                  </div>
+                                  <span className="font-mono text-xs sm:text-sm text-gray-600 dark:text-gray-400 group-hover:text-design-black dark:group-hover:text-white transition-colors">
+                                      Manage Admins
+                                  </span>
+                              </button>
+                          )}
+                        </>
+                      )}
                   </div>
               </div>
              </div>
@@ -240,6 +268,11 @@ const Services: React.FC = () => {
 
         </div>
       </div>
+      
+      <AdminManagerModal 
+        isOpen={showAdminModal} 
+        onClose={() => setShowAdminModal(false)}
+      />
     </section>
   );
 };

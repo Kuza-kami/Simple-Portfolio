@@ -1,0 +1,75 @@
+{
+  "entities": {
+    "admin": {
+      "title": "Admin",
+      "description": "An administrative user email",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "addedBy": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "addedBy", "createdAt"]
+    },
+    "project": {
+      "title": "Project",
+      "description": "A portfolio project",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "year": { "type": "string" },
+        "image": { "type": "string" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "process": { "type": "array" },
+        "description": { "type": "string" },
+        "extendedDescription": { "type": "string" },
+        "challenge": { "type": "string" },
+        "solution": { "type": "string" },
+        "technologies": { "type": "array", "items": { "type": "string" } },
+        "size": { "type": "string" },
+        "medium": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "title", "category", "year", "image", "description", "createdAt", "updatedAt"]
+    },
+    "timelineEvent": {
+      "title": "Timeline Event",
+      "description": "An event on the portfolio timeline",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "year": { "type": "string" },
+        "completionDate": { "type": "string" },
+        "title": { "type": "string" },
+        "desc": { "type": "string" },
+        "extendedDesc": { "type": "string" },
+        "image": { "type": "string" },
+        "origin": { "type": "string" },
+        "isVerified": { "type": "boolean" },
+        "showCertificate": { "type": "boolean" },
+        "certTitle": { "type": "string" },
+        "certInfo": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "year", "title", "desc", "createdAt", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/admins/{email}": {
+      "schema": { "$ref": "#/entities/admin" },
+      "description": "Global admins indexed by email"
+    },
+    "/users/{userId}/projects/{projectId}": {
+      "schema": { "$ref": "#/entities/project" },
+      "description": "Projects owned by a user"
+    },
+    "/users/{userId}/timelineEvents/{eventId}": {
+      "schema": { "$ref": "#/entities/timelineEvent" },
+      "description": "Timeline events owned by a user"
+    }
+  }
+}

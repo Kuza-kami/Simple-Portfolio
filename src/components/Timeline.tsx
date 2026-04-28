@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useScroll, useTransform, useSpring, AnimatePresence } from 'framer-motion';
-import { X, Award, FileText, Calendar, MapPin, ShieldCheck, Edit2, Trash2 } from 'lucide-react';
+import { X, Award, FileText, Calendar, MapPin, ShieldCheck, Edit2, Trash2, Plus } from 'lucide-react';
 import { TimelineEvent } from '../types';
 import TimelineActionModal from './TimelineActionModal';
 import { timelineEvents } from '../data/content';
@@ -10,6 +10,9 @@ import BlurText from './BlurText';
 import DeleteConfirmModal from './DeleteConfirmModal';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { useAuth } from '../AuthContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -27,7 +30,7 @@ const Timeline: React.FC = () => {
     return [];
   });
 
-  const [removedEvents, setRemovedEvents] = useState<number[]>(() => {
+  const [removedEvents, setRemovedEvents] = useState<(number | string)[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('portfolio_timeline_removedEvents');
       if (saved) {
@@ -50,7 +53,23 @@ const Timeline: React.FC = () => {
   const [showActionModal, setShowActionModal] = useState(false);
   const [eventToEdit, setEventToEdit] = useState<TimelineEvent | null>(null);
   const [editMode, setEditMode] = useState(false);
-  const [eventToDelete, setEventToDelete] = useState<number | null>(null);
+  const [eventToDelete, setEventToDelete] = useState<number | string | null>(null);
+
+  const { user, isAdmin } = useAuth();
+  const [firebaseEvents, setFirebaseEvents] = useState<TimelineEvent[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'timelineEvents'), (snapshot) => {
+      const evts: TimelineEvent[] = [];
+      snapshot.forEach(d => {
+        evts.push({ id: d.id, ...d.data() } as TimelineEvent);
+      });
+      setFirebaseEvents(evts);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'timelineEvents');
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     try {
@@ -86,11 +105,11 @@ const Timeline: React.FC = () => {
 
   const finalEvents = React.useMemo(() => {
     const baseEvents: TimelineEvent[] = timelineEvents.map((evt, idx) => ({ ...evt, id: idx, isVerified: true, showCertificate: true }));
-    const all = [...customEvents, ...baseEvents];
+    const all = [...firebaseEvents, ...customEvents, ...baseEvents];
     return all
-      .filter(evt => evt.id !== undefined && !removedEvents.includes(evt.id))
-      .map(evt => (evt.id !== undefined && editedEvents[evt.id]) ? { ...evt, ...editedEvents[evt.id] } : evt);
-  }, [customEvents, removedEvents, editedEvents]);
+      .filter(evt => evt.id !== undefined && !removedEvents.includes(typeof evt.id === 'string' ? -1 : evt.id))
+      .map(evt => (evt.id !== undefined && typeof evt.id === 'number' && editedEvents[evt.id]) ? { ...evt, ...editedEvents[evt.id] } : evt);
+  }, [firebaseEvents, customEvents, removedEvents, editedEvents]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -167,11 +186,19 @@ const Timeline: React.FC = () => {
           {/* Header */}
           <ParallaxFloat offset={15}>
             <BlurReveal>
-              <div className="text-center mb-16 md:mb-24 relative z-10">
+              <div className="text-center mb-16 md:mb-24 relative z-10 flex flex-col items-center">
                    <span className="block text-[10px] sm:text-xs font-mono uppercase tracking-widest mb-2 md:mb-2 text-design-blue">The Process</span>
-                   <h2 className="text-[clamp(3rem,_6vw,_8rem)] font-display uppercase font-bold text-design-black dark:text-white leading-none">
+                   <h2 className="text-[clamp(3rem,_6vw,_8rem)] font-display uppercase font-bold text-design-black dark:text-white leading-none mb-6">
                       Awards & <br /><span className="italic font-serif font-light text-gray-400">Experience</span>
                    </h2>
+                   {isAdmin && (
+                     <button 
+                       onClick={() => setShowActionModal(true)}
+                       className="flex items-center gap-2 bg-design-blue text-white px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-design-black dark:hover:bg-white dark:hover:text-design-black transition-colors shadow-lg"
+                     >
+                       <Plus size={14} /> Add Event
+                     </button>
+                   )}
               </div>
             </BlurReveal>
           </ParallaxFloat>
@@ -479,20 +506,46 @@ const Timeline: React.FC = () => {
           setEventToEdit(null);
         }}
         eventToEdit={eventToEdit}
-        onSubmit={(evt) => {
+        onSubmit={async (evt) => {
           if (eventToEdit) {
-            setEditedEvents(prev => ({ ...prev, [evt.id!]: evt }));
+            if (user && firebaseEvents.some(e => e.id === evt.id)) {
+              try {
+                const docRef = doc(db, 'timelineEvents', String(evt.id));
+                await updateDoc(docRef, { ...evt, updatedAt: serverTimestamp() });
+              } catch (e) {
+                handleFirestoreError(e, OperationType.UPDATE, `timelineEvents/${evt.id}`);
+              }
+            } else {
+              setEditedEvents(prev => ({ ...prev, [evt.id as number]: evt }));
+            }
           } else {
-            setCustomEvents(prev => [{ ...evt, id: Date.now() }, ...prev]);
+            if (user) {
+              try {
+                const docRef = doc(collection(db, 'timelineEvents'));
+                await setDoc(docRef, { ...evt, userId: user.uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+              } catch (e) {
+                handleFirestoreError(e, OperationType.CREATE, 'timelineEvents');
+              }
+            } else {
+              setCustomEvents(prev => [{ ...evt, id: Date.now() }, ...prev]);
+            }
           }
         }}
       />
       <DeleteConfirmModal
         isOpen={eventToDelete !== null}
         onClose={() => setEventToDelete(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (eventToDelete !== null) {
-            setRemovedEvents(prev => [...prev, eventToDelete]);
+            if (user && typeof eventToDelete === 'string') {
+              try {
+                await deleteDoc(doc(db, 'timelineEvents', eventToDelete));
+              } catch (e) {
+                handleFirestoreError(e, OperationType.DELETE, `timelineEvents/${eventToDelete}`);
+              }
+            } else {
+              setRemovedEvents(prev => [...prev, eventToDelete as number]);
+            }
           }
         }}
       />

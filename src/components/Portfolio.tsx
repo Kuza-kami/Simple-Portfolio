@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Project } from '../types';
-import { ArrowUpRight, X, ChevronLeft, ChevronRight, Search, ImageOff, Trash2, Edit2 } from 'lucide-react';
+import { ArrowUpRight, X, ChevronLeft, ChevronRight, Search, ImageOff, Trash2, Edit2, Plus } from 'lucide-react';
 import ProjectFilter from './ProjectFilter';
 import ProjectUploadModal from './ProjectUploadModal';
 import ProjectEditModal from './ProjectEditModal';
 import DeleteConfirmModal from './DeleteConfirmModal';
+import AdminGuide from './AdminGuide';
 import { motion, AnimatePresence } from 'framer-motion';
 import { portfolioProjects } from '../data/content';
 import { getHighResUrl } from '../utils/imageUtils';
@@ -13,6 +14,9 @@ import { moreProjects, getProjectDetails } from '../utils/projectUtils';
 import { ParallaxFloat, DecryptedText, ThreeDTextReveal, SplitText } from './TextAnimations';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { useAuth } from '../AuthContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -97,7 +101,7 @@ const ProjectCard: React.FC<{
   onClick: () => void;
   editMode?: boolean;
   onEdit?: (e: React.MouseEvent, project: Project) => void;
-  onRemove?: (e: React.MouseEvent, id: number) => void;
+  onRemove?: (e: React.MouseEvent, id: number | string) => void;
 }> = ({ project, onClick, editMode, onEdit, onRemove }) => {
 
   return (
@@ -232,9 +236,26 @@ const Portfolio: React.FC = () => {
   });
 
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showAdminGuide, setShowAdminGuide] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [projectToEdit, setProjectToEdit] = useState<Project | null>(null);
-  const [projectToDelete, setProjectToDelete] = useState<number | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<number | string | null>(null);
+  
+  const { user, isAdmin, signIn, logOut } = useAuth();
+  const [firebaseProjects, setFirebaseProjects] = useState<Project[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'projects'), (snapshot) => {
+      const projects: Project[] = [];
+      snapshot.forEach(d => {
+        projects.push({ id: d.id, ...d.data() } as Project);
+      });
+      setFirebaseProjects(projects);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'projects');
+    });
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
     try {
@@ -272,6 +293,15 @@ const Portfolio: React.FC = () => {
       setSearchQuery('');
     } else if (value.toUpperCase() === 'IWANTTOREMOVEPROJECT' || value.toUpperCase() === 'IWANTTOREMOVETIMELINE') {
       window.dispatchEvent(new CustomEvent('secret_edit_mode_on'));
+      setSearchQuery('');
+    } else if (value.toUpperCase() === 'IWANTTOBEADMIN') {
+      if (!user) signIn();
+      setSearchQuery('');
+    } else if (value.toUpperCase() === 'IWANTTOLEAVEADMIN') {
+      if (user) logOut();
+      setSearchQuery('');
+    } else if (value.toUpperCase() === 'IWANTTOSEEGUIDE') {
+      setShowAdminGuide(true);
       setSearchQuery('');
     } else if (value.toUpperCase() === 'IWANTTOADDTIMELINE') {
       window.dispatchEvent(new CustomEvent('secret_add_timeline'));
@@ -522,11 +552,11 @@ const Portfolio: React.FC = () => {
   }, [selectedProject, viewHighRes]);
 
   const allProjects = useMemo(() => {
-    const baseProjects = showAll ? [...customProjects, ...portfolioProjects, ...moreProjects] : [...customProjects, ...portfolioProjects];
+    const baseProjects = showAll ? [...firebaseProjects, ...customProjects, ...portfolioProjects, ...moreProjects] : [...firebaseProjects, ...customProjects, ...portfolioProjects];
     return baseProjects
-      .filter(p => !removedProjects.includes(p.id))
-      .map(p => editedCustomProjects[p.id] ? { ...p, ...editedCustomProjects[p.id] } : p);
-  }, [showAll, customProjects, removedProjects, editedCustomProjects]);
+      .filter(p => !removedProjects.includes(typeof p.id === 'string' ? -1 : p.id))
+      .map(p => typeof p.id === 'number' && editedCustomProjects[p.id] ? { ...p, ...editedCustomProjects[p.id] } : p);
+  }, [showAll, firebaseProjects, customProjects, removedProjects, editedCustomProjects]);
 
   const filteredProjects = useMemo(() => {
     let filtered = activeFilter === 'All' 
@@ -623,6 +653,14 @@ const Portfolio: React.FC = () => {
                </h2>
             </div>
             <div className="flex flex-col gap-4 items-end w-full md:w-auto">
+                {isAdmin && (
+                  <button 
+                    onClick={() => setShowUploadModal(true)}
+                    className="flex items-center gap-2 bg-design-green text-design-black px-6 py-2 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white hover:text-design-black transition-colors shadow-[0_0_15px_rgba(204,255,0,0.3)]"
+                  >
+                    <Plus size={14} /> Add Project
+                  </button>
+                )}
                 <div className="relative w-full md:w-96 group">
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none">
                     <Search className="w-4 h-4 text-white/30 group-focus-within:text-design-green transition-colors" />
@@ -666,7 +704,7 @@ const Portfolio: React.FC = () => {
                     setSelectedProject(project);
                     setCurrentImageIndex(0);
                   }} 
-                  editMode={editMode}
+                  editMode={editMode || isAdmin}
                   onEdit={(e, p) => {
                     e.stopPropagation();
                     setProjectToEdit(p);
@@ -1093,32 +1131,66 @@ const Portfolio: React.FC = () => {
       <ProjectUploadModal 
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
-        onSubmit={(newProjects) => {
-          setCustomProjects(prev => [
-            ...newProjects.map((p, idx) => ({ ...p, id: Date.now() + idx })),
-            ...prev
-          ]);
+        onSubmit={async (newProjects) => {
+          if (user) {
+            try {
+              for (const p of newProjects) {
+                const docRef = doc(collection(db, 'projects'));
+                await setDoc(docRef, { ...p, userId: user.uid, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+              }
+            } catch (e) {
+              handleFirestoreError(e, OperationType.CREATE, 'projects');
+            }
+          } else {
+            console.warn("User not logged in, uploading locally.");
+            setCustomProjects(prev => [
+              ...newProjects.map((p, idx) => ({ ...p, id: Date.now() + idx })),
+              ...prev
+            ]);
+          }
         }}
       />
       <ProjectEditModal
         isOpen={!!projectToEdit}
         onClose={() => setProjectToEdit(null)}
         project={projectToEdit}
-        onSubmit={(updatedProject) => {
-          setEditedCustomProjects(prev => ({
-            ...prev,
-            [updatedProject.id]: updatedProject
-          }));
+        onSubmit={async (updatedProject) => {
+          if (user && firebaseProjects.some(p => p.id === updatedProject.id)) {
+            try {
+              const docRef = doc(db, 'projects', String(updatedProject.id));
+              await updateDoc(docRef, { ...updatedProject, updatedAt: serverTimestamp() });
+            } catch (e) {
+              handleFirestoreError(e, OperationType.UPDATE, `projects/${updatedProject.id}`);
+            }
+          } else {
+            console.warn("Updating local static project or unauthenticated");
+            setEditedCustomProjects(prev => ({
+              ...prev,
+              [updatedProject.id as number]: updatedProject
+            }));
+          }
         }}
       />
       <DeleteConfirmModal
         isOpen={projectToDelete !== null}
         onClose={() => setProjectToDelete(null)}
-        onConfirm={() => {
+        onConfirm={async () => {
           if (projectToDelete !== null) {
-            setRemovedProjects(prev => [...prev, projectToDelete]);
+            if (user && typeof projectToDelete === 'string') {
+              try {
+                await deleteDoc(doc(db, 'projects', projectToDelete));
+              } catch (e) {
+                handleFirestoreError(e, OperationType.DELETE, `projects/${projectToDelete}`);
+              }
+            } else {
+              setRemovedProjects(prev => [...prev, projectToDelete as number]);
+            }
           }
         }}
+      />
+      <AdminGuide 
+        isOpen={showAdminGuide}
+        onClose={() => setShowAdminGuide(false)}
       />
     </section>
   );

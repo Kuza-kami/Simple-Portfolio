@@ -1,0 +1,112 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() { return request.auth != null; }
+    function isVerifiedUser() { return isSignedIn() && request.auth.token.email_verified == true; }
+    function isAdmin() {
+      return isVerifiedUser() && (
+        request.auth.token.email == 'kuzashikami@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.token.email))
+      );
+    }
+    
+    function isValidId(id) { return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_@\\-\\.]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidAdmin(data) {
+        return data.keys().hasAll(['email', 'addedBy', 'createdAt'])
+            && data.email is string && data.email.size() <= 200
+            && data.addedBy is string && data.addedBy.size() <= 200
+            && data.createdAt is timestamp;
+    }
+
+    function isValidProject(data) {
+        return data.keys().hasAll(['userId', 'title', 'category', 'year', 'image', 'description', 'createdAt', 'updatedAt'])
+            && data.userId is string && data.userId.size() <= 128
+            && data.title is string && data.title.size() <= 200
+            && data.category is string && data.category.size() <= 100
+            && data.year is string && data.year.size() <= 20
+            && data.image is string && data.image.size() <= 1048487
+            && data.description is string && data.description.size() <= 10000
+            && data.createdAt is timestamp
+            && data.updatedAt is timestamp
+            && (!('extendedDescription' in data) || (data.extendedDescription is string && data.extendedDescription.size() <= 50000))
+            && (!('challenge' in data) || (data.challenge is string && data.challenge.size() <= 10000))
+            && (!('solution' in data) || (data.solution is string && data.solution.size() <= 10000))
+            && (!('size' in data) || (data.size is string && data.size.size() <= 100))
+            && (!('medium' in data) || (data.medium is string && data.medium.size() <= 100))
+            && (!('images' in data) || (data.images is list && data.images.size() <= 20 && (data.images.size() == 0 || data.images[0] is string)))
+            && (!('technologies' in data) || (data.technologies is list && data.technologies.size() <= 50 && (data.technologies.size() == 0 || data.technologies[0] is string)))
+            && (!('process' in data) || (data.process is list && data.process.size() <= 20 && (data.process.size() == 0 || data.process[0] is map)));
+    }
+
+    function isValidTimelineEvent(data) {
+        return data.keys().hasAll(['userId', 'year', 'title', 'desc', 'createdAt', 'updatedAt'])
+            && data.userId is string && data.userId.size() <= 128
+            && data.year is string && data.year.size() <= 20
+            && data.title is string && data.title.size() <= 200
+            && data.desc is string && data.desc.size() <= 2000
+            && data.createdAt is timestamp
+            && data.updatedAt is timestamp
+            && (!('completionDate' in data) || (data.completionDate is string && data.completionDate.size() <= 100))
+            && (!('extendedDesc' in data) || (data.extendedDesc is string && data.extendedDesc.size() <= 50000))
+            && (!('image' in data) || (data.image is string && data.image.size() <= 1048487))
+            && (!('origin' in data) || (data.origin is string && data.origin.size() <= 200))
+            && (!('isVerified' in data) || data.isVerified is bool)
+            && (!('showCertificate' in data) || data.showCertificate is bool)
+            && (!('certTitle' in data) || (data.certTitle is string && data.certTitle.size() <= 200))
+            && (!('certInfo' in data) || (data.certInfo is string && data.certInfo.size() <= 5000));
+    }
+
+    match /admins/{email} {
+        allow read: if (isVerifiedUser() && request.auth.token.email == email) || isAdmin();
+        allow create: if isAdmin()
+                      && isValidId(email)
+                      && isValidAdmin(incoming())
+                      && incoming().email == email
+                      && incoming().createdAt == request.time;
+        allow delete: if isAdmin() && isValidId(email);
+    }
+
+    match /projects/{projectId} {
+        allow read: if true;
+        allow create: if isAdmin() 
+                      && isValidId(projectId)
+                      && isValidProject(incoming())
+                      && incoming().userId == request.auth.uid
+                      && incoming().createdAt == request.time
+                      && incoming().updatedAt == request.time;
+        allow update: if isAdmin()
+                      && isValidId(projectId)
+                      && isValidProject(incoming())
+                      && existing().userId != null
+                      && incoming().userId == existing().userId
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().updatedAt == request.time;
+        allow delete: if isAdmin() && isValidId(projectId);
+    }
+
+    match /timelineEvents/{eventId} {
+        allow read: if true;
+        allow create: if isAdmin() 
+                      && isValidId(eventId)
+                      && isValidTimelineEvent(incoming())
+                      && incoming().userId == request.auth.uid
+                      && incoming().createdAt == request.time
+                      && incoming().updatedAt == request.time;
+        allow update: if isAdmin()
+                      && isValidId(eventId)
+                      && isValidTimelineEvent(incoming())
+                      && existing().userId != null
+                      && incoming().userId == existing().userId
+                      && incoming().createdAt == existing().createdAt
+                      && incoming().updatedAt == request.time;
+        allow delete: if isAdmin() && isValidId(eventId);
+    }
+  }
+}
