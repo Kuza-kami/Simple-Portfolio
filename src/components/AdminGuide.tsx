@@ -30,6 +30,11 @@ const AdminGuide: React.FC<AdminGuideProps> = ({ isOpen, onClose }) => {
       icon: <Shield className="text-purple-400" size={20} />,
       title: "4. User Management",
       desc: "As the lead admin, you can add other users via the 'Manage Admins' button in the About/Contact section once you are logged in."
+    },
+    {
+      icon: <MousePointer2 className="text-orange-400" size={20} />,
+      title: "5. Production Setup",
+      desc: "If logging in fails on Vercel with 'unauthorized-domain', add your Vercel URL to the 'Authorized Domains' in your Firebase Console Settings."
     }
   ];
 

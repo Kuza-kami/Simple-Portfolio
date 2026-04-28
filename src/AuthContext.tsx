@@ -59,6 +59,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         alert("Sign-in failed due to network request error. If you are using this in an iframe/preview, try opening the app in a new tab, or check your connection.");
       } else if (error?.code === 'auth/popup-closed-by-user') {
         console.warn("Sign-in popup closed by user.");
+      } else if (error?.code === 'auth/unauthorized-domain') {
+        alert("Domain Not Authorized: You must add your Vercel/Production URL to the 'Authorized Domains' list in the Firebase Console (Authentication > Settings > Authorized Domains).");
       } else {
         alert(`Sign-in failed: ${error?.message || "Unknown error"}`);
       }
